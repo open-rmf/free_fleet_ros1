@@ -15,52 +15,26 @@
  *
  */
 
-#ifndef FREE_FLEET_UI__SRC__MANAGER_HPP
-#define FREE_FLEET_UI__SRC__MANAGER_HPP
+#ifndef FREE_FLEET_UI__SRC__MAP_HPP
+#define FREE_FLEET_UI__SRC__MAP_HPP
 
-#include <QMainWindow>
-#include <QGraphicsScene>
-#include <QHBoxLayout>
-#include <QVBoxLayout>
-
-#include "Viewer.hpp"
-#include "MapConfig.hpp"
+#include <string>
 
 namespace free_fleet
 {
 namespace viz
 {
 
-class Manager : public QMainWindow
+struct MapConfig
 {
-  Q_OBJECT
-
-public:
-
-  Manager(QWidget* parent = nullptr);
-
-  bool load_config(const QString& filename);
-
-private slots:
-
-  void open_config();
-
-private:
-
-  /// There will only be one instance
-  static Manager* instance;
-
-  static Manager* get_instance();
-
-  QGraphicsScene* scene;
-
-  Viewer* viewer;
-
-  MapConfig map_config;
-
+  std::string image;
+  double resolution;
+  bool negate;
+  double occupied_thresh;
+  double free_thresh;
 };
 
 } // namespace viz
 } // namespace free_fleet
 
-#endif // FREE_FLEET_UI__SRC__MANAGER_HPP
+#endif // FREE_FLEET_UI__SRC__MAP_HPP

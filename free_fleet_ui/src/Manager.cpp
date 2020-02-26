@@ -16,6 +16,9 @@
  */
 
 #include <QMenuBar>
+#include <QFileDialog>
+#include <QDialog>
+#include <QFileInfo>
 
 #include "Manager.hpp"
 
@@ -37,6 +40,8 @@ Manager::Manager(QWidget* parent) :
 
   scene = new QGraphicsScene(this);
   viewer = new Viewer(this);
+  viewer->setScene(scene);
+
   QVBoxLayout* viewer_layout = new QVBoxLayout;
   viewer_layout->addWidget(viewer);
 
@@ -56,6 +61,45 @@ Manager::Manager(QWidget* parent) :
 
   // HELP MENU
   QMenu* help_menu = menuBar()->addMenu("&Help");
+}
+
+bool Manager::load_config(const QString& filename)
+{
+  const std::string filename_std_string = filename.toStdString();
+  try
+  {
+
+  }
+  catch (const std::exception &e)
+  {
+    qWarning("couldn't parse %s: %s",
+        qUtf8Printable(filename),
+        e.what());
+    return false;
+  }
+
+  return true;
+}
+
+void Manager::open_config()
+{
+  QFileDialog file_dialog(this, "Open Config");
+  file_dialog.setFileMode(QFileDialog::ExistingFile);
+  file_dialog.setNameFilter("*.yaml");
+
+  if (file_dialog.exec() != QDialog::Accepted)
+    return;
+
+  QFileInfo file_info(file_dialog.selectedFiles().first());
+  if (!file_info.exists()) 
+  {
+    QMessageBox::critical(
+        this,
+        "File does not exist",
+        "File does not exist. Cannot open file.");
+    return;
+  }
+  load_map(file_info.filePath());
 }
 
 Manager* Manager::get_instance()

@@ -20,6 +20,7 @@
 
 #include <QGraphicsView>
 #include <QWheelEvent>
+#include <QMouseEvent>
 
 namespace free_fleet
 {
@@ -34,6 +35,22 @@ class Viewer : public QGraphicsView
 public:
 
   Viewer(QWidget* parent = nullptr);
+
+protected:
+
+  // void wheel_event(QWheelEvent* event);
+
+  // void mouse_move_event(QMouseEvent* event);
+
+  // void mouse_press_event(QMouseEvent* event);
+
+  // void mouse_release_event(QMouseEvent* event);
+
+  // bool is_parnning;
+
+  // int pan_start_x;
+
+  // int pan_start_y;
 
 };
 
