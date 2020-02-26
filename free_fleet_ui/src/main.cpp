@@ -20,7 +20,7 @@
 #include <QtWidgets>
 #include <QSettings>
 
-#include "Manager.hpp"
+#include "FreeFleetUI.hpp"
 
 int main(int argc, char** argv)
 {
@@ -29,8 +29,8 @@ int main(int argc, char** argv)
   app.setOrganizationDomain("openrobotics.org");
   app.setApplicationName("free_fleet_ui");
 
-  free_fleet::viz::Manager free_fleet_manager;
-  free_fleet_manager.show();
+  free_fleet::viz::FreeFleetUI free_fleet_ui;
+  free_fleet_ui.show();
 
   return app.exec();
 }

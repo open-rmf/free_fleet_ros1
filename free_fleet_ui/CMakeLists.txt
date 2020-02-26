@@ -16,19 +16,25 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 
 find_package(yaml-cpp REQUIRED)
-find_package(CycloneDDS REQUIRED)
+find_package(free_fleet REQUIRED)
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
 
 # -----------------------------------------------------------------------------
 
 add_executable(free_fleet_ui
   src/main.cpp
-  src/Manager.cpp
+  src/FreeFleetUI.cpp
   src/Viewer.cpp
+  src/MapConfig.cpp
 )
 target_link_libraries(free_fleet_ui
   Qt5::Widgets
   yaml-cpp
+  ${free_fleet_LIBRARIES}
+)
+target_include_directories(free_fleet_ui
+  PRIVATE
+    ${free_fleet_INCLUDE_DIRS}
 )
 
 install(

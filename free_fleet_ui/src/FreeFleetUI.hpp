@@ -15,32 +15,55 @@
  *
  */
 
-#ifndef FREE_FLEET_UI__SRC__MAPCONFIG_HPP
-#define FREE_FLEET_UI__SRC__MAPCONFIG_HPP
+#ifndef FREE_FLEET_UI__SRC__FREEFLEETUI_HPP
+#define FREE_FLEET_UI__SRC__FREEFLEETUI_HPP
 
-#include <string>
 #include <memory>
+
+#include <QMainWindow>
+#include <QGraphicsScene>
+#include <QHBoxLayout>
+#include <QVBoxLayout>
+#include <QFileInfo>
+
+#include "Viewer.hpp"
+#include "MapConfig.hpp"
 
 namespace free_fleet
 {
 namespace viz
 {
 
-struct MapConfig
+class FreeFleetUI : public QMainWindow
 {
+  Q_OBJECT
 
-  std::string image;
-  double resolution;
-  bool negate;
-  double occupied_thresh;
-  double free_thresh;
+public:
 
-  using SharedPtr = std::shared_ptr<MapConfig>;
+  FreeFleetUI(QWidget* parent = nullptr);
 
-  static SharedPtr parse_map_config(const std::string& config_path);
+  // bool load_config(const QString& filename);
+
+private:
+
+  /// There will only be one instance
+  static FreeFleetUI* instance;
+
+  static FreeFleetUI* get_instance();
+
+  QGraphicsScene* scene;
+
+  Viewer* viewer;
+
+  std::unique_ptr<MapConfig> current_map_config;
+
+  void file_open();
+
+  bool load_file(const QFileInfo& file_info);
+
 };
 
 } // namespace viz
 } // namespace free_fleet
 
-#endif // FREE_FLEET_UI__SRC__MAPCONFIG_HPP
+#endif // FREE_FLEET_UI__SRC__FREEFLEETUI_HPP

@@ -15,15 +15,8 @@
  *
  */
 
-#ifndef FREE_FLEET_UI__SRC__MANAGER_HPP
-#define FREE_FLEET_UI__SRC__MANAGER_HPP
+#include <yaml-cpp/yaml.h>
 
-#include <QMainWindow>
-#include <QGraphicsScene>
-#include <QHBoxLayout>
-#include <QVBoxLayout>
-
-#include "Viewer.hpp"
 #include "MapConfig.hpp"
 
 namespace free_fleet
@@ -31,36 +24,30 @@ namespace free_fleet
 namespace viz
 {
 
-class Manager : public QMainWindow
+MapConfig::SharedPtr MapConfig::parse_map_config(
+    const std::string& config_path)
 {
-  Q_OBJECT
+  YAML::Node yaml;
+  try
+  {
+    yaml = YAML::LoadFile(config_path.c_str());
+  }
+  catch (const std::exception& e)
+  {
+    printf("couldn't parse %s: %s", config_path.c_str(), e.what());
+    return nullptr;
+  }
 
-public:
+  if (!yaml["image"] || !yaml["resolution"] || !yaml["origin"])
+  {
+    printf("couldn't parse %s: configuration must have image, resolution and "
+        "origin fields", config_path.c_str());
+    return nullptr;
+  }
 
-  Manager(QWidget* parent = nullptr);
-
-  bool load_config(const QString& filename);
-
-private slots:
-
-  void open_config();
-
-private:
-
-  /// There will only be one instance
-  static Manager* instance;
-
-  static Manager* get_instance();
-
-  QGraphicsScene* scene;
-
-  Viewer* viewer;
-
-  MapConfig map_config;
-
-};
+  auto new_config = std::make_shared<MapConfig>();
+  return new_config;
+}
 
 } // namespace viz
 } // namespace free_fleet
-
-#endif // FREE_FLEET_UI__SRC__MANAGER_HPP
