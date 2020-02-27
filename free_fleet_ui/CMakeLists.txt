@@ -26,6 +26,9 @@ add_executable(free_fleet_ui
   src/FreeFleetUI.cpp
   src/Viewer.cpp
   src/MapConfig.cpp
+  src/FleetSelector.cpp
+  src/RobotSelector.cpp
+  src/RobotRequester.cpp
 )
 target_link_libraries(free_fleet_ui
   Qt5::Widgets

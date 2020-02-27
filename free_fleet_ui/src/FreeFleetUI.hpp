@@ -25,9 +25,13 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QFileInfo>
+#include <QPixmap>
 
 #include "Viewer.hpp"
 #include "MapConfig.hpp"
+#include "FleetSelector.hpp"
+#include "RobotSelector.hpp"
+#include "RobotRequester.hpp"
 
 namespace free_fleet
 {
@@ -42,8 +46,6 @@ public:
 
   FreeFleetUI(QWidget* parent = nullptr);
 
-  // bool load_config(const QString& filename);
-
 private:
 
   /// There will only be one instance
@@ -55,11 +57,23 @@ private:
 
   Viewer* viewer;
 
-  std::unique_ptr<MapConfig> current_map_config;
+  MapConfig::SharedPtr current_map_config;
 
   void file_open();
 
-  bool load_file(const QFileInfo& file_info);
+  bool load_config_file(const QFileInfo& config_file_info);
+
+  QPixmap map_pixmap;
+  int map_width = 0;
+  int map_height = 0;
+
+  bool create_scene();
+
+  FleetSelector::UniquePtr fleet_selector;
+
+  RobotSelector::UniquePtr robot_selector;
+
+  RobotRequester::UniquePtr robot_requester;
 
 };
 

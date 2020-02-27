@@ -15,36 +15,23 @@
  *
  */
 
-#ifndef FREE_FLEET_UI__SRC__MAPCONFIG_HPP
-#define FREE_FLEET_UI__SRC__MAPCONFIG_HPP
-
-#include <array>
-#include <memory>
-
-#include <QFileInfo>
+#include "FleetSelector.hpp"
 
 namespace free_fleet
 {
 namespace viz
 {
 
-struct MapConfig
+FleetSelector::FleetSelector()
+{}
+
+QGroupBox* FleetSelector::make_group_box(QWidget* parent)
 {
+  QGroupBox* group_box = new QGroupBox("Fleet");
+  group_box->setStyleSheet("QGroupBox {background-color: #e0e0e0;}");
 
-  QString image;
-  double resolution;
-  std::array<double, 3> origin;
-
-  MapConfig();
-
-  void print_config();
-
-  using SharedPtr = std::shared_ptr<MapConfig>;
-
-  static SharedPtr parse_map_config(const QFileInfo& config_file_info);
-};
+  return group_box;
+}
 
 } // namespace viz
 } // namespace free_fleet
-
-#endif // FREE_FLEET_UI__SRC__MAPCONFIG_HPP
