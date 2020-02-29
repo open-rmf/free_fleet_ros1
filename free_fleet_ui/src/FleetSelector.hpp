@@ -19,7 +19,11 @@
 #define FREE_FLEET_UI__SRC__FLEETSELECTOR_HPP
 
 #include <memory>
+#include <mutex>
 
+#include <QLabel>
+#include <QString>
+#include <QLineEdit>
 #include <QGroupBox>
 
 namespace free_fleet
@@ -39,6 +43,16 @@ public:
   QGroupBox* make_group_box(QWidget* parent = nullptr);
 
 private:
+
+  QLineEdit* fleet_name_editor;
+
+  std::mutex fleet_name_mutex;
+
+  QString fleet_name;
+
+  QLabel* number_of_robots_display;
+
+  void refresh_fleet_name();
 
 };
 

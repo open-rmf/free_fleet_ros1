@@ -57,15 +57,15 @@ FreeFleetUI::FreeFleetUI(QWidget* parent) :
 
   // fleet name group
   fleet_selector.reset(new FleetSelector);
-  QGroupBox* fleet_selection_group_box = fleet_selector->make_group_box(this);
+  QGroupBox* fleet_selection_group_box = fleet_selector->make_group_box();
 
   // robot selection group
   robot_selector.reset(new RobotSelector);
-  QGroupBox* robot_selection_group_box = robot_selector->make_group_box(this);
+  QGroupBox* robot_selection_group_box = robot_selector->make_group_box();
         
   // robot request group
   robot_requester.reset(new RobotRequester);
-  QGroupBox* robot_request_group_box = robot_requester->make_group_box(this);
+  QGroupBox* robot_request_group_box = robot_requester->make_group_box();
 
   QVBoxLayout* management_column_layout = new QVBoxLayout;
   management_column_layout->addWidget(fleet_selection_group_box);
