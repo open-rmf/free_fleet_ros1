@@ -97,7 +97,7 @@ FreeFleetUI::FreeFleetUI(QWidget* parent) :
   setMouseTracking(true);
 
   central_widget->setLayout(hbox_layout);
-  central_widget->setStyleSheet("background-color: #404040");
+  // central_widget->setStyleSheet("background-color: #404040");
   setCentralWidget(central_widget);
 
   //===========================================================================

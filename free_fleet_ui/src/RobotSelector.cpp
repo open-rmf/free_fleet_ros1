@@ -28,7 +28,7 @@ RobotSelector::RobotSelector()
 QGroupBox* RobotSelector::make_group_box(QWidget* parent)
 {
   QGroupBox* group_box = new QGroupBox("Robot Selection", parent);
-  group_box->setStyleSheet("QGroupBox {background-color: #e0e0e0;}");
+  // group_box->setStyleSheet("QGroupBox {background-color: #e0e0e0;}");
 
   return group_box;
 }

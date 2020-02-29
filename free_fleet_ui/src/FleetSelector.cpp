@@ -32,23 +32,25 @@ namespace viz
 FleetSelector::FleetSelector()
 {}
 
-QGroupBox* FleetSelector::make_group_box(QWidget* parent)
+QGroupBox* FleetSelector::make_group_box()
 {
-  fleet_name_editor = new QLineEdit(parent);
+  fleet_name_editor = new QLineEdit;
 
-  QPushButton* refresh_fleet_name_button = new QPushButton("refresh", parent);
+  QPushButton* refresh_fleet_name_button = new QPushButton("refresh");
+  // refresh_fleet_name_button->setStyleSheet(
+  //     "QGroupBox {background-color: #e0e0e0;}");
 
-  QHBoxLayout* h_layout_1 = new QHBoxLayout(parent);
+  QHBoxLayout* h_layout_1 = new QHBoxLayout;
   h_layout_1->addWidget(new QLabel("Name:"), 4);
   h_layout_1->addWidget(fleet_name_editor, 12);
-  h_layout_1->addWidget(new QWidget(parent), 1);
+  h_layout_1->addWidget(new QWidget, 1);
   h_layout_1->addWidget(refresh_fleet_name_button, 4);
 
-  QVBoxLayout* layout = new QVBoxLayout(parent);
+  QVBoxLayout* layout = new QVBoxLayout;
   layout->addLayout(h_layout_1);
 
   QGroupBox* group_box = new QGroupBox("Fleet");
-  group_box->setStyleSheet("QGroupBox {background-color: #e0e0e0;}");
+  // group_box->setStyleSheet("QGroupBox {background-color: #e0e0e0;}");
   group_box->setLayout(layout);
 
   QGroupBox::connect(
@@ -57,6 +59,18 @@ QGroupBox* FleetSelector::make_group_box(QWidget* parent)
       [=](){this->refresh_fleet_name();});
 
   return group_box;
+}
+
+QString FleetSelector::fleet_name()
+{
+  ReadLock fleet_name_lock(fleet_name_mutex);
+  return fleet_name;
+}
+
+void FleetSelector::fleet_name(const QString& fn)
+{
+  WriteLock fleet_name_lock(fleet_name_mutex);
+  fleet_name = fn;
 }
 
 void FleetSelector::refresh_fleet_name()

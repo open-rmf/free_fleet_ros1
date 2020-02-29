@@ -31,13 +31,13 @@ RobotRequester::RobotRequester()
 QGroupBox* RobotRequester::make_group_box(QWidget* parent)
 {
   QGroupBox* group_box = new QGroupBox("Robot Requests", parent);
-  group_box->setStyleSheet("QGroupBox {background-color: #e0e0e0;}");
+  // group_box->setStyleSheet("QGroupBox {background-color: #e0e0e0;}");
 
   QTabWidget* robot_request_tabs = new QTabWidget;
   robot_request_tabs->addTab(new QWidget, "Mode");
   robot_request_tabs->addTab(new QWidget, "Destination");
   robot_request_tabs->addTab(new QWidget, "Path");
-  robot_request_tabs->setStyleSheet("QTabBar::tab { color: white; }");
+  // robot_request_tabs->setStyleSheet("QTabBar::tab { color: white; }");
 
   QVBoxLayout* layout = new QVBoxLayout;
   layout->addWidget(robot_request_tabs);

@@ -37,10 +37,20 @@ class FleetSelector
 public:
 
   using UniquePtr = std::unique_ptr<FleetSelector>;
+  using ReadLock = std::unique_lock<std::mutex>;
+  using WriteLock = std::unique_lock<std::mutex>;
 
   FleetSelector();
 
-  QGroupBox* make_group_box(QWidget* parent = nullptr);
+  QGroupBox* make_group_box();
+
+  QString fleet_name();
+
+  void fleet_name(const QString& fn);
+
+  int number_of_robots();
+
+  void number_of_robots(int n);
 
 private:
 
