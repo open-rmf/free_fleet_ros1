@@ -53,8 +53,6 @@ private:
 
   static FreeFleetUI* get_instance();
 
-  QGraphicsScene* scene;
-
   Viewer* viewer;
 
   MapConfig::SharedPtr current_map_config;
@@ -62,12 +60,6 @@ private:
   void file_open();
 
   bool load_config_file(const QFileInfo& config_file_info);
-
-  QPixmap map_pixmap;
-  int map_width = 0;
-  int map_height = 0;
-
-  bool create_scene();
 
   FleetSelector::UniquePtr fleet_selector;
 

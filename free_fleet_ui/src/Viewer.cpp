@@ -15,6 +15,11 @@
  *
  */
 
+#include <QImage>
+#include <QPixmap>
+#include <QScrollBar>
+#include <QImageReader>
+
 #include "Viewer.hpp"
 
 namespace free_fleet
@@ -23,9 +28,112 @@ namespace viz
 {
 
 Viewer::Viewer(QWidget* parent)
-: QGraphicsView(parent)
+: QGraphicsView(parent),
+  is_panning(false),
+  pan_start_x(0),
+  pan_start_y(0)
 {
+  setMouseTracking(true);
+  viewport()->setMouseTracking(true);
+  setTransformationAnchor(QGraphicsView::NoAnchor);
+
+  scene = new QGraphicsScene(this);
+  setScene(scene);
+}
+
+bool Viewer::create_scene(const MapConfig::SharedPtr& _map_config)
+{
+  if (!map_config)
+    return false;
+
+  map_config = _map_config;
+  scene->clear();
+  // viewer.draw(scene);
+
+  QImageReader image_reader(map_config->image);
+  image_reader.setAutoTransform(true);
+  QImage image = image_reader.read();
+  if (image.isNull())
+  {
+    qWarning("unable to read %s: %s",
+        qUtf8Printable(map_config->image),
+        qUtf8Printable(image_reader.errorString()));
+    return false;
+  }
+
+  image = image.convertToFormat(QImage::Format_Grayscale8);
+  map_pixmap = QPixmap::fromImage(image);
+  map_width = map_pixmap.width();
+  map_height = map_pixmap.height();
+
+  scene->addPixmap(map_pixmap);
+  return true;
+}
+
+void Viewer::wheelEvent(QWheelEvent* event)
+{
+  // calculate the map position before we scale things
+  const QPointF p_start = mapToScene(event->pos());
   
+  // scale things
+  if (event->delta() > 0)
+    scale(1.1, 1.1);
+  else
+    scale(0.9, 0.9);
+
+  // calculate the mouse map position now that we've scaled
+  const QPointF p_end = mapToScene(event->pos());
+
+  // translate the map back so hopefully the mouse stays in the same spot
+  const QPointF diff = p_end - p_start;
+  translate(diff.x(), diff.y());
+}
+
+void Viewer::mouseMoveEvent(QMouseEvent* event)
+{
+  if (is_panning)
+  {
+    const int dx = event->x() - pan_start_x;
+    const int dy = event->y() - pan_start_y;
+    horizontalScrollBar()->setValue(horizontalScrollBar()->value() - dx);
+    verticalScrollBar()->setValue(verticalScrollBar()->value() - dy);
+    pan_start_x = event->x();
+    pan_start_y = event->y();
+    event->accept();
+    return;
+  }
+  event->ignore();
+}
+
+void Viewer::mousePressEvent(QMouseEvent* event)
+{
+  if (event->button() == Qt::MiddleButton)
+  {
+    is_panning = true;
+    pan_start_x = event->x();
+    pan_start_y = event->y();
+    event->accept();
+    return;
+  }
+  event->ignore();
+}
+
+void Viewer::mouseReleaseEvent(QMouseEvent* event)
+{
+  if (event->button() == Qt::MiddleButton)
+  {
+    is_panning = false;
+    event->accept();
+    return;
+  }
+  else if (event->button() == Qt::LeftButton)
+  {
+    const QPointF mapped_pos = mapToScene(event->pos());
+    printf("clicked ,x: %.2f, y: %.2f\n", mapped_pos.x(), mapped_pos.y());
+    event->accept();
+    return;
+  }
+  event->ignore();
 }
 
 } // namespace viz

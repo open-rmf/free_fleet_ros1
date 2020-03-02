@@ -18,9 +18,14 @@
 #ifndef FREE_FLEET_UI__SRC__VIEWER_HPP
 #define FREE_FLEET_UI__SRC__VIEWER_HPP
 
-#include <QGraphicsView>
+#include <cstdio>
+
 #include <QWheelEvent>
 #include <QMouseEvent>
+#include <QGraphicsView>
+#include <QGraphicsScene>
+
+#include "MapConfig.hpp"
 
 namespace free_fleet
 {
@@ -36,21 +41,35 @@ public:
 
   Viewer(QWidget* parent = nullptr);
 
+  bool create_scene(const MapConfig::SharedPtr& _map_config);
+
 protected:
 
-  // void wheel_event(QWheelEvent* event);
+  void wheelEvent(QWheelEvent* event) final;
 
-  // void mouse_move_event(QMouseEvent* event);
+  void mouseMoveEvent(QMouseEvent* event) final;
 
-  // void mouse_press_event(QMouseEvent* event);
+  void mousePressEvent(QMouseEvent* event) final;
 
-  // void mouse_release_event(QMouseEvent* event);
+  void mouseReleaseEvent(QMouseEvent* event) final;
 
-  // bool is_parnning;
+  bool is_panning;
 
-  // int pan_start_x;
+  int pan_start_x;
 
-  // int pan_start_y;
+  int pan_start_y;
+
+private:
+
+  QGraphicsScene* scene;
+
+  QPixmap map_pixmap;
+
+  int map_width = 0;
+
+  int map_height = 0;
+
+  MapConfig::SharedPtr map_config;
 
 };
 

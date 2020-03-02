@@ -76,9 +76,7 @@ FreeFleetUI::FreeFleetUI(QWidget* parent) :
   // Viewer will be displaying the map/laser scan used by all the robots, as
   // well as rendering the locations of each robot on the map.
 
-  scene = new QGraphicsScene(this);
   viewer = new Viewer(this);
-  viewer->setScene(scene);
 
   QVBoxLayout* viewer_layout = new QVBoxLayout;
   viewer_layout->addWidget(viewer);
@@ -145,7 +143,7 @@ void FreeFleetUI::file_open()
   }
 
   if (load_config_file(config_file_info))
-    create_scene();
+    viewer->create_scene(current_map_config);
 }
 
 bool FreeFleetUI::load_config_file(const QFileInfo& config_file_info)
@@ -153,32 +151,6 @@ bool FreeFleetUI::load_config_file(const QFileInfo& config_file_info)
   current_map_config = MapConfig::parse_map_config(config_file_info);
   if (!current_map_config)
     return false;
-
-  return true;
-}
-
-bool FreeFleetUI::create_scene()
-{
-  scene->clear();
-  // viewer.draw(scene);
-
-  QImageReader image_reader(current_map_config->image);
-  image_reader.setAutoTransform(true);
-  QImage image = image_reader.read();
-  if (image.isNull())
-  {
-    qWarning("unable to read %s: %s",
-        qUtf8Printable(current_map_config->image),
-        qUtf8Printable(image_reader.errorString()));
-    return false;
-  }
-
-  image = image.convertToFormat(QImage::Format_Grayscale8);
-  map_pixmap = QPixmap::fromImage(image);
-  map_width = map_pixmap.width();
-  map_height = map_pixmap.height();
-
-  scene->addPixmap(map_pixmap);
 
   return true;
 }

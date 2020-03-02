@@ -44,13 +44,9 @@ public:
 
   QGroupBox* make_group_box();
 
-  QString fleet_name();
+  QString get_fleet_name();
 
-  void fleet_name(const QString& fn);
-
-  int number_of_robots();
-
-  void number_of_robots(int n);
+  void set_robot_num(int n);
 
 private:
 
@@ -60,7 +56,7 @@ private:
 
   QString fleet_name;
 
-  QLabel* number_of_robots_display;
+  QLabel* robot_num_display;
 
   void refresh_fleet_name();
 

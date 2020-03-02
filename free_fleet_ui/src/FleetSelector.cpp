@@ -61,16 +61,15 @@ QGroupBox* FleetSelector::make_group_box()
   return group_box;
 }
 
-QString FleetSelector::fleet_name()
+QString FleetSelector::get_fleet_name()
 {
   ReadLock fleet_name_lock(fleet_name_mutex);
   return fleet_name;
 }
 
-void FleetSelector::fleet_name(const QString& fn)
+void FleetSelector::set_robot_num(int n)
 {
-  WriteLock fleet_name_lock(fleet_name_mutex);
-  fleet_name = fn;
+  // robot_num_display->setText((std::to_string(n)).c_str());
 }
 
 void FleetSelector::refresh_fleet_name()
