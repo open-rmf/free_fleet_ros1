@@ -40,6 +40,7 @@ namespace viz
 
 class FreeFleetUI : public QMainWindow
 {
+  
   Q_OBJECT
 
 public:
@@ -58,8 +59,6 @@ private:
   MapConfig::SharedPtr current_map_config;
 
   void file_open();
-
-  bool load_config_file(const QFileInfo& config_file_info);
 
   FleetSelector::UniquePtr fleet_selector;
 

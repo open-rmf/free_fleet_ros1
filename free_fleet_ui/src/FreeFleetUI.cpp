@@ -142,39 +142,18 @@ void FreeFleetUI::file_open()
     return;
   }
 
-  if (load_config_file(config_file_info))
-    viewer->create_scene(current_map_config);
-}
-
-bool FreeFleetUI::load_config_file(const QFileInfo& config_file_info)
-{
   current_map_config = MapConfig::parse_map_config(config_file_info);
   if (!current_map_config)
-    return false;
+  {
+    QMessageBox::critical(
+        this,
+        "Could not parse file",
+        "Could not parse file, please check that it has all the necessary fields");
+    return;
+  }
 
-  return true;
+  viewer->create_scene(current_map_config);
 }
-
-// void Manager::file_open()
-// {
-//   QFileDialog file_dialog(this, "Open Config");
-//   file_dialog.setFileMode(QFileDialog::ExistingFile);
-//   file_dialog.setNameFilter("*.yaml");
-
-//   if (file_dialog.exec() != QDialog::Accepted)
-//     return;
-
-//   QFileInfo file_info(file_dialog.selectedFiles().first());
-//   if (!file_info.exists()) 
-//   {
-//     QMessageBox::critical(
-//         this,
-//         "File does not exist",
-//         "File does not exist. Cannot open file.");
-//     return;
-//   }
-//   load_map(file_info.filePath());
-// }
 
 FreeFleetUI* FreeFleetUI::get_instance()
 {

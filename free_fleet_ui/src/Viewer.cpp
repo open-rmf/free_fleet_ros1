@@ -43,20 +43,21 @@ Viewer::Viewer(QWidget* parent)
 
 bool Viewer::create_scene(const MapConfig::SharedPtr& _map_config)
 {
-  if (!map_config)
+  if (!_map_config)
     return false;
 
   map_config = _map_config;
+
   scene->clear();
   // viewer.draw(scene);
 
-  QImageReader image_reader(map_config->image);
+  QImageReader image_reader(_map_config->image);
   image_reader.setAutoTransform(true);
   QImage image = image_reader.read();
   if (image.isNull())
   {
     qWarning("unable to read %s: %s",
-        qUtf8Printable(map_config->image),
+        qUtf8Printable(_map_config->image),
         qUtf8Printable(image_reader.errorString()));
     return false;
   }
@@ -128,12 +129,25 @@ void Viewer::mouseReleaseEvent(QMouseEvent* event)
   }
   else if (event->button() == Qt::LeftButton)
   {
-    const QPointF mapped_pos = mapToScene(event->pos());
-    printf("clicked ,x: %.2f, y: %.2f\n", mapped_pos.x(), mapped_pos.y());
+    const QPointF real_pos = mouse_to_real_pos(event->pos());
+    printf("clicked ,x: %.2f, y: %.2f\n", real_pos.x(), real_pos.y());
     event->accept();
     return;
   }
   event->ignore();
+}
+
+QPointF Viewer::mouse_to_real_pos(const QPoint& mouse_pos) const
+{
+  const QPointF map_pos = mapToScene(mouse_pos);
+  const QPointF scaled_real_pos = map_pos * map_config->resolution;
+  const QPointF real_pos_with_offset(
+      scaled_real_pos.x() + map_config->origin[0],
+      -(scaled_real_pos.y() + map_config->origin[1]));
+      
+  // TODO: check offsets again, there seem to be some difference between
+  // RVIZ clicked_point and real_pos_with_offset.
+  return real_pos_with_offset;
 }
 
 } // namespace viz

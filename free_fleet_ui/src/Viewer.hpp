@@ -41,7 +41,7 @@ public:
 
   Viewer(QWidget* parent = nullptr);
 
-  bool create_scene(const MapConfig::SharedPtr& _map_config);
+  bool create_scene(const MapConfig::SharedPtr& map_config);
 
 protected:
 
@@ -70,6 +70,8 @@ private:
   int map_height = 0;
 
   MapConfig::SharedPtr map_config;
+
+  QPointF mouse_to_real_pos(const QPoint& mouse_pos) const;
 
 };
 
