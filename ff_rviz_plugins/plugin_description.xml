@@ -1,0 +1,9 @@
+<library path="libff_rviz_plugins">
+  <class name="ff_rviz_plugins/FFPanel"
+      type="free_fleet::FFPanel"
+      base_class_type="rviz::Panel">
+    <description>
+      A panel widget that allows sending simple navigation commands.
+    </description>
+  </class>
+</library>
