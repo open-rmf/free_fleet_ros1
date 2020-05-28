@@ -35,8 +35,8 @@
 #include <free_fleet/messages/DestinationRequest.hpp>
 
 #include "FFPanel.hpp"
+#include "FFPanelConfig.hpp"
 #include "utilities.hpp"
-#include "StandardNames.hpp"
 
 namespace free_fleet {
 
@@ -58,8 +58,9 @@ FFPanel::FFPanel(QWidget* parent)
   connect(_send_nav_goal_button, &QPushButton::clicked, this,
       &FFPanel::send_nav_goal);
 
-  ServerConfig default_server_conf;
-  _free_fleet_server = Server::make(default_server_conf);
+  auto panel_config = PanelConfig::make();
+  
+  _free_fleet_server = Server::make(panel_config.get_server_config());
   if (!_free_fleet_server)
   {
     _debug_label->setText("Free Fleet server unable to start...");
@@ -67,15 +68,10 @@ FFPanel::FFPanel(QWidget* parent)
   }
 
   _nav_goal_sub = _nh.subscribe(
-      RvizNavGoalTopic, 2, &FFPanel::update_goal, this);
+      panel_config.rviz_nav_goal_topic, 2, &FFPanel::update_goal, this);
   _robot_state_relay_sub = _nh.subscribe(
-      PanelRobotStateTopicName, 2, &FFPanel::update_states, this);
+      panel_config.panel_robot_state_topic, 2, &FFPanel::update_states, this);
 }
-
-//==============================================================================
-
-FFPanel::~FFPanel()
-{}
 
 //==============================================================================
 

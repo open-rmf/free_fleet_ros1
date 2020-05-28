@@ -40,6 +40,7 @@ catkin_package()
 add_library(${PROJECT_NAME}
   src/FFPanel.cpp
   src/utilities.cpp
+  src/FFPanelConfig.cpp
 )
 target_link_libraries(${PROJECT_NAME}
   ${free_fleet_LIBRARIES}
@@ -54,23 +55,24 @@ target_include_directories(${PROJECT_NAME}
 
 #===============================================================================
 
-# add_executable(panel_server_adapter
-#   src/PanelServer.cpp
-# )
-# target_link_libraries(testing
-#   ${free_fleet_LIBRARIES}
-#   ${catkin_LIBRARIES}
-# )
-# target_include_directories(testing
-#   PRIVATE
-#     ${free_fleet_INCLUDE_DIRS}
-#     ${catkin_INCLUDE_DIRS}
-# )
+add_executable(panel_server_node
+  src/FFPanelServerNode.cpp
+  src/FFPanelConfig.cpp
+)
+target_link_libraries(panel_server_node
+  ${free_fleet_LIBRARIES}
+  ${catkin_LIBRARIES}
+)
+target_include_directories(panel_server_node
+  PRIVATE
+    ${free_fleet_INCLUDE_DIRS}
+    ${catkin_INCLUDE_DIRS}
+)
 
 #===============================================================================
 
 install(
-  TARGETS ${PROJECT_NAME} #panel_server_adapter
+  TARGETS ${PROJECT_NAME} panel_server_node
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

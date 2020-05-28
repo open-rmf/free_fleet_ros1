@@ -94,7 +94,11 @@
   </node>
 
   <!-- launch the overall visualization on rviz -->
-  <node pkg="rviz" type="rviz" name="rviz" required="true"
+  <group>
+    <!-- <node pkg="ff_rviz_plugins" type="panel_server_node" 
+        name="panel_server_node" required="true"/> -->
+    <node pkg="rviz" type="rviz" name="rviz" required="true"
         args="-d $(find ff_examples)/rviz/multi_turtlebot3_ff.rviz"/>
+  </group>
   
 </launch>

@@ -43,8 +43,6 @@ public:
 
   FFPanel(QWidget* parent = 0);
 
-  ~FFPanel();
-
 private Q_SLOTS:
 
   void send_nav_goal();
