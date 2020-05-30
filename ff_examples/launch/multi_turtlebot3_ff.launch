@@ -95,10 +95,12 @@
 
   <!-- launch the overall visualization on rviz -->
   <group>
-    <!-- <node pkg="ff_rviz_plugins" type="panel_server_node" 
-        name="panel_server_node" required="true"/> -->
     <node pkg="rviz" type="rviz" name="rviz" required="true"
-        args="-d $(find ff_examples)/rviz/multi_turtlebot3_ff.rviz"/>
+        args="-d $(find ff_examples)/rviz/multi_turtlebot3_ff.rviz">
+      <param name="fleet_name" type="string" value="turtlebot3"/>
+    </node>
+    <node name="panel_server_node" pkg="ff_rviz_plugins" 
+        type="panel_server_node" output="screen"/>
   </group>
   
 </launch>

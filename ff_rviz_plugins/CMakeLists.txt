@@ -58,6 +58,7 @@ target_include_directories(${PROJECT_NAME}
 add_executable(panel_server_node
   src/FFPanelServerNode.cpp
   src/FFPanelConfig.cpp
+  src/utilities.cpp
 )
 target_link_libraries(panel_server_node
   ${free_fleet_LIBRARIES}

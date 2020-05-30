@@ -24,6 +24,8 @@
 
 namespace free_fleet {
 
+//==============================================================================
+
 double get_yaw_from_quat(const geometry_msgs::Quaternion& _quat)
 {
   tf2::Quaternion tf2_quat;
@@ -37,6 +39,8 @@ double get_yaw_from_quat(const geometry_msgs::Quaternion& _quat)
   tf2_mat.getEulerYPR(yaw, pitch, roll);
   return yaw;
 }
+
+//==============================================================================
 
 std::string generate_random_task_id(size_t length)
 {
@@ -53,5 +57,65 @@ std::string generate_random_task_id(size_t length)
   std::generate_n( str.begin(), length, randchar );
   return str;
 }
+
+//==============================================================================
+
+void convert(
+    const free_fleet::messages::Location& in,
+    ff_rviz_plugins_msgs::Location& out)
+{
+  out.t = ros::Time(in.sec, in.nanosec);
+  out.x = in.x;
+  out.y = in.y;
+  out.yaw = in.yaw;
+  out.level_name = in.level_name;
+}
+
+//==============================================================================
+
+void convert(
+    const free_fleet::messages::RobotMode& in,
+    ff_rviz_plugins_msgs::RobotMode& out)
+{
+  out.mode = in.mode;
+}
+
+//==============================================================================
+
+void convert(
+    const free_fleet::messages::RobotState& in,
+    ff_rviz_plugins_msgs::RobotState& out)
+{
+  out.name = in.name;
+  out.model = in.model;
+  out.task_id = in.task_id;
+  convert(in.mode, out.mode);
+  out.battery_percent = in.battery_percent;
+  convert(in.location, out.location);
+  out.path.clear();
+  for (const auto& loc : in.path)
+  {
+    ff_rviz_plugins_msgs::Location loc_msg;
+    convert(loc, loc_msg);
+    out.path.push_back(loc_msg);
+  }
+}
+
+//==============================================================================
+
+void convert(
+    const std::vector<free_fleet::messages::RobotState>& in, 
+    ff_rviz_plugins_msgs::RobotStateArray& out)
+{
+  out.states.clear();
+  for (const auto& rs : in)
+  {
+    ff_rviz_plugins_msgs::RobotState rs_msg;
+    convert(rs, rs_msg);
+    out.states.push_back(rs_msg);
+  }
+}
+
+//==============================================================================
 
 } // namespace free_fleet

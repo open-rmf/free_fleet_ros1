@@ -12,6 +12,7 @@ add_message_files(
     Location.msg
     RobotMode.msg
     RobotState.msg
+    RobotStateArray.msg
 )
 
 generate_messages()

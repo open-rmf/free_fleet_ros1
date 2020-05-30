@@ -57,9 +57,10 @@ void PanelConfig::print_config() const
 {
   printf("PANEL CONFIGURATION\n");
   printf("  state update rate: %d\n", state_update_rate);
+  printf("  fleet name: %s\n", fleet_name.c_str());
   printf("  TOPICS\n");
-  printf("    rviz navigation goal topic: %s\n", rviz_nav_goal_topic.c_str());
-  printf("    panel robot state topic: %s\n", panel_robot_state_topic.c_str());
+  printf("    rviz navigation goal: %s\n", rviz_nav_goal_topic.c_str());
+  printf("    state array: %s\n", panel_state_array_topic.c_str());
   printf("CLIENT-SERVER DDS CONFIGURATION\n");
   printf("  dds domain: %d\n", dds_domain);
   printf("  TOPICS\n");
@@ -86,17 +87,6 @@ ServerConfig PanelConfig::get_server_config() const
 
 //==============================================================================
 
-
-  int state_update_rate = 10;
-  std::string rviz_nav_goal_topic = "/move_base_simple/goal";
-  std::string panel_robot_state_topic = "/ff_panel/robot_state";
-
-  int dds_domain = 42;
-  std::string dds_robot_state_topic = "robot_state";
-  std::string dds_mode_request_topic = "mode_request";
-  std::string dds_path_request_topic = "path_request";
-  std::string dds_destination_request_topic = "destination_request";
-
 PanelConfig PanelConfig::make()
 {
   PanelConfig config;
@@ -104,9 +94,11 @@ PanelConfig PanelConfig::make()
   config.get_param_if_available(
       node_private_ns, "state_update_rate", config.state_update_rate);
   config.get_param_if_available(
-      node_private_ns, "state_update_rate", config.rviz_nav_goal_topic);
+      node_private_ns, "fleet_name", config.fleet_name);
   config.get_param_if_available(
-      node_private_ns, "state_update_rate", config.panel_robot_state_topic);
+      node_private_ns, "rviz_nav_goal_topic", config.rviz_nav_goal_topic);
+  config.get_param_if_available(
+      node_private_ns, "panel_state_array_topic", config.panel_state_array_topic);
   config.get_param_if_available(
       node_private_ns, "dds_domain", config.dds_domain);
   config.get_param_if_available(

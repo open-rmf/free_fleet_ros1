@@ -21,16 +21,19 @@
 #include <mutex>
 #include <unordered_map>
 
+#include <QLabel>
 #include <QString>
 #include <QLineEdit>
 #include <QTextEdit>
 #include <QGroupBox>
+#include <QComboBox>
+#include <QPushButton>
 
 #include <rviz/panel.h>
 
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
-#include <ff_rviz_plugins_msgs/RobotState.h>
+#include <ff_rviz_plugins_msgs/RobotStateArray.h>
 
 #include <free_fleet/Server.hpp>
 
@@ -39,32 +42,33 @@ namespace free_fleet {
 class FFPanel : public rviz::Panel
 {
 
+Q_OBJECT
+
 public:
 
   FFPanel(QWidget* parent = 0);
 
-private Q_SLOTS:
+public Q_SLOTS:
 
+  void update_robot_name_selector();
   void send_nav_goal();
-
-protected:
 
 private:
 
-  void create_robot_group_box();
-  void create_nav_group_box();
-  void create_debug_group_box();
+  QGroupBox* create_robot_group_box();
+  QGroupBox* create_nav_group_box();
+  QGroupBox* create_debug_group_box();
 
-  QGroupBox* _robot_group_box;
-  QGroupBox* _nav_group_box;
-  QGroupBox* _debug_group_box;
+  void create_layout();
+  void create_connections();
 
-  QLineEdit* _fleet_name_edit;
-  QLineEdit* _robot_name_edit;
+  QLabel* _fleet_name;
+  QComboBox* _robot_name_selector;
+
   QTextEdit* _nav_goal_edit;
-  QLabel* _debug_label;
-
   QPushButton* _send_nav_goal_button;
+
+  QLabel* _debug_label;
 
   // TODO: figure out why we are unable to read incoming states.
   // For now, we will use a server relay, using static topics and Path messages.
@@ -72,7 +76,7 @@ private:
 
   ros::NodeHandle _nh;
   ros::Subscriber _nav_goal_sub;
-  ros::Subscriber _robot_state_relay_sub;
+  ros::Subscriber _state_array_relay_sub;
 
   std::mutex _nav_goal_mutex;
   geometry_msgs::PoseStamped _nav_goal;
@@ -83,7 +87,7 @@ private:
 
   void update_goal(const geometry_msgs::PoseStamped::ConstPtr& msg);
 
-  void update_states(const ff_rviz_plugins_msgs::RobotState::ConstPtr& msg);
+  void update_states(const ff_rviz_plugins_msgs::RobotStateArray::ConstPtr& msg);
 
   QString nav_goal_to_qstring(const geometry_msgs::PoseStamped& msg) const;
 };

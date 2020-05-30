@@ -20,11 +20,34 @@
 
 #include <geometry_msgs/Quaternion.h>
 
+#include <free_fleet/messages/RobotState.hpp>
+
+#include <ff_rviz_plugins_msgs/Location.h>
+#include <ff_rviz_plugins_msgs/RobotMode.h>
+#include <ff_rviz_plugins_msgs/RobotState.h>
+#include <ff_rviz_plugins_msgs/RobotStateArray.h>
+
 namespace free_fleet {
 
 double get_yaw_from_quat(const geometry_msgs::Quaternion& quat);
 
 std::string generate_random_task_id(size_t length);
+
+void convert(
+    const free_fleet::messages::Location& in,
+    ff_rviz_plugins_msgs::Location& out);
+
+void convert(
+    const free_fleet::messages::RobotMode& in,
+    ff_rviz_plugins_msgs::RobotMode& out);
+
+void convert(
+    const free_fleet::messages::RobotState& in,
+    ff_rviz_plugins_msgs::RobotState& out);
+
+void convert(
+    const std::vector<free_fleet::messages::RobotState>& in, 
+    ff_rviz_plugins_msgs::RobotStateArray& out);
 
 } // namespace free_fleet
 
