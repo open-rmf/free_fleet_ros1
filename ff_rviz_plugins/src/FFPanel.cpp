@@ -107,6 +107,7 @@ void FFPanel::update_robot_name_selector()
   {
     _robot_name_selector->addItem(QString(it.first.c_str()));
   }
+  _robot_name_selector->model()->sort(0);
 
   _robot_name_selector->blockSignals(false);
 }
