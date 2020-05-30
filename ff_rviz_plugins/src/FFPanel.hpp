@@ -28,11 +28,13 @@
 #include <QGroupBox>
 #include <QComboBox>
 #include <QPushButton>
+#include <QRadioButton>
 
 #include <rviz/panel.h>
 
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <visualization_msgs/MarkerArray.h>
 #include <ff_rviz_plugins_msgs/RobotStateArray.h>
 
 #include <free_fleet/Server.hpp>
@@ -66,7 +68,8 @@ private:
   QComboBox* _robot_name_selector;
 
   QTextEdit* _nav_goal_edit;
-  QPushButton* _send_nav_goal_button;
+  QPushButton* _delete_waypoint_button;
+  QPushButton* _send_goal_button;
 
   QLabel* _debug_label;
 
@@ -75,19 +78,22 @@ private:
   Server::SharedPtr _free_fleet_server;
 
   ros::NodeHandle _nh;
-  ros::Subscriber _nav_goal_sub;
+  ros::Subscriber _rviz_nav_goal_sub;
   ros::Subscriber _state_array_relay_sub;
+  ros::Publisher _nav_goal_markers_pub;
 
   std::mutex _nav_goal_mutex;
-  geometry_msgs::PoseStamped _nav_goal;
+  std::vector<geometry_msgs::PoseStamped> _nav_goals;
 
   std::mutex _robot_states_mutex;
   std::unordered_map<std::string, ff_rviz_plugins_msgs::RobotState> 
       _robot_states;
 
-  void update_goal(const geometry_msgs::PoseStamped::ConstPtr& msg);
+  void rviz_nav_goal_callback(const geometry_msgs::PoseStamped::ConstPtr& msg);
 
   void update_states(const ff_rviz_plugins_msgs::RobotStateArray::ConstPtr& msg);
+
+  void display_goals();
 
   QString nav_goal_to_qstring(const geometry_msgs::PoseStamped& msg) const;
 };

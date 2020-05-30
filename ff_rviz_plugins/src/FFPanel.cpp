@@ -53,10 +53,12 @@ FFPanel::FFPanel(QWidget* parent)
     return;
   }
 
-  _nav_goal_sub = _nh.subscribe(
-      panel_config.rviz_nav_goal_topic, 2, &FFPanel::update_goal, this);
+  _rviz_nav_goal_sub = _nh.subscribe(
+      panel_config.rviz_nav_goal_topic, 2, 
+      &FFPanel::rviz_nav_goal_callback, this);
   _state_array_relay_sub = _nh.subscribe(
-      panel_config.panel_state_array_topic, 2, &FFPanel::update_states, this);
+      panel_config.panel_state_array_topic, 2, 
+      &FFPanel::update_states, this);
 }
 
 //==============================================================================
@@ -145,7 +147,8 @@ QGroupBox* FFPanel::create_nav_group_box()
   _nav_goal_edit->setReadOnly(true);
   _nav_goal_edit->setPlainText(nav_goal_to_qstring(_nav_goal));
 
-  _send_nav_goal_button = new QPushButton("Send Nav Goal");
+  _delete_waypoint_button = new QPushButton("&Delete Waypoint");
+  _send_goal_button = new QPushButton("&Send Goal");
 
   QSizePolicy size_policy(QSizePolicy::Minimum, QSizePolicy::Minimum);
   size_policy.setHorizontalStretch(0);
@@ -156,7 +159,8 @@ QGroupBox* FFPanel::create_nav_group_box()
 
   QGridLayout* layout = new QGridLayout;
   layout->addWidget(_nav_goal_edit, 0, 0, 6, 3);
-  layout->addWidget(_send_nav_goal_button, 0, 3, 6, 1);
+  layout->addWidget(_delete_waypoint_button, 0, 3, 3, 1);
+  layout->addWidget(_send_goal_button, 3, 3, 3, 1);
 
   QGroupBox* group_box = new QGroupBox("Navigation");
   group_box->setLayout(layout);
@@ -218,10 +222,13 @@ void FFPanel::create_connections()
 
 //==============================================================================
 
-void FFPanel::update_goal(const geometry_msgs::PoseStamped::ConstPtr& msg)
+void FFPanel::rviz_nav_goal_callback(
+    const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
   std::unique_lock<std::mutex> nav_goal_lock(_nav_goal_mutex);
-  _nav_goal = *msg;
+  _nav_goals.push_back(*msg);
+  nav_goal_lock.unlock();
+  display_goals();
   _nav_goal_edit->setPlainText(nav_goal_to_qstring(_nav_goal));
 }
 
@@ -256,6 +263,12 @@ void FFPanel::update_states(
         + " robots...";
     _debug_label->setText(QString::fromStdString(debug_label_str));
   }
+}
+
+//==============================================================================
+
+void FFPanel::display_goals()
+{
 }
 
 //==============================================================================

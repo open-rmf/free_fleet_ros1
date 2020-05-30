@@ -13,6 +13,7 @@
   <depend>rviz</depend>
   <depend>roscpp</depend>
   <depend>geometry_msgs</depend>
+  <depend>visualization_msgs</depend>
 
   <depend>free_fleet</depend>
   <depend>ff_rviz_plugins_msgs</depend>

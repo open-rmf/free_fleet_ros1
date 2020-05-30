@@ -20,6 +20,7 @@ include(GNUInstallDirs)
 find_package(catkin QUIET COMPONENTS
   roscpp
   geometry_msgs
+  visualization_msgs
   pluginlib
   rviz
   ff_rviz_plugins_msgs
