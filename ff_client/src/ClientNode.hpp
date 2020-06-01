@@ -126,8 +126,8 @@ private:
 
   // TODO: conditions to trigger emergency, however this is most likely for
   // indicating emergency within the fleet and not in RMF
+  std::atomic<bool> request_error;
   std::atomic<bool> emergency;
-
   std::atomic<bool> paused;
 
   messages::RobotMode get_robot_mode();

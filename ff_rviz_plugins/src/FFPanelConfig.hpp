@@ -28,10 +28,11 @@ namespace free_fleet {
 
 struct PanelConfig
 {
-  int state_update_rate = 30;
+  int state_update_rate = 20;
   std::string fleet_name = "fleet_name";
   std::string rviz_nav_goal_topic = "/move_base_simple/goal";
   std::string panel_state_array_topic = "/ff_panel/robot_state_array";
+  std::string navigation_markers_topic = "/ff_panel/navigation_markers";
 
   int dds_domain = 42;
   std::string dds_robot_state_topic = "robot_state";

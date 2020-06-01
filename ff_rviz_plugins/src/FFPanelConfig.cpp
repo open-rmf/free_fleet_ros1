@@ -61,6 +61,7 @@ void PanelConfig::print_config() const
   printf("  TOPICS\n");
   printf("    rviz navigation goal: %s\n", rviz_nav_goal_topic.c_str());
   printf("    state array: %s\n", panel_state_array_topic.c_str());
+  printf("    navigation markers: %s\n", navigation_markers_topic.c_str());
   printf("CLIENT-SERVER DDS CONFIGURATION\n");
   printf("  dds domain: %d\n", dds_domain);
   printf("  TOPICS\n");
@@ -99,6 +100,8 @@ PanelConfig PanelConfig::make()
       node_private_ns, "rviz_nav_goal_topic", config.rviz_nav_goal_topic);
   config.get_param_if_available(
       node_private_ns, "panel_state_array_topic", config.panel_state_array_topic);
+  config.get_param_if_available(
+      node_private_ns, "navigation_markers_topic", config.navigation_markers_topic);
   config.get_param_if_available(
       node_private_ns, "dds_domain", config.dds_domain);
   config.get_param_if_available(

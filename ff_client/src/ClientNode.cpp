@@ -97,6 +97,7 @@ void ClientNode::start(Fields _fields)
       client_node_config.level_name_topic, 1, 
       &ClientNode::level_name_callback_fn, this);
 
+  request_error = false;
   emergency = false;
   paused = false;
 
@@ -157,6 +158,10 @@ bool ClientNode::get_robot_transform()
 
 messages::RobotMode ClientNode::get_robot_mode()
 {
+  /// Checks if robot has just received a request that causes an adapter error
+  if (request_error)
+    return messages::RobotMode{messages::RobotMode::MODE_REQUEST_ERROR};
+
   /// Checks if robot is under emergency
   if (emergency)
     return messages::RobotMode{messages::RobotMode::MODE_EMERGENCY};
@@ -244,8 +249,8 @@ void ClientNode::publish_robot_state()
     }
   }
 
-  if (fields.client->send_robot_state(new_robot_state))
-    ROS_INFO("sent robot state: msg sec %u", new_robot_state.location.sec);
+  if (!fields.client->send_robot_state(new_robot_state))
+    ROS_WARN("failed to send robot state: msg sec %u", new_robot_state.location.sec);
 }
 
 //==============================================================================
@@ -356,6 +361,14 @@ bool ClientNode::read_path_request()
       {
         ROS_WARN("distance was over threshold of %.2f ! Rejecting path.\n",
             client_node_config.max_dist_to_first_waypoint);
+
+        fields.move_base_client->cancelAllGoals();
+        WriteLock goal_path_lock(goal_path_mutex);
+        goal_path.clear();
+
+        request_error = true;
+        emergency = false;
+        paused = false;
         return false;
       }
     }
@@ -379,6 +392,7 @@ bool ClientNode::read_path_request()
     if (paused)
       paused = false;
 
+    request_error = false;
     return true;
   }
   return false;
@@ -435,7 +449,7 @@ void ClientNode::read_requests()
 void ClientNode::handle_requests()
 {
   // there is an emergency or the robot is paused
-  if (emergency || paused)
+  if (request_error || emergency || paused)
     return;
 
   // ooooh we have goals
