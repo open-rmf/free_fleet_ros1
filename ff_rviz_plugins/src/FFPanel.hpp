@@ -37,6 +37,7 @@
 
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <visualization_msgs/MarkerArray.h>
 #include <ff_rviz_plugins_msgs/RobotStateArray.h>
 
 #include <free_fleet/Server.hpp>
@@ -92,7 +93,6 @@ private:
   ros::Subscriber _rviz_nav_goal_sub;
   ros::Subscriber _state_array_relay_sub;
   ros::Publisher _nav_goal_markers_pub;
-  ros::Timer _display_timer;
 
   std::mutex _nav_goals_mutex;
   std::unordered_map<std::string, std::vector<geometry_msgs::PoseStamped>> 
@@ -102,17 +102,14 @@ private:
   std::unordered_map<std::string, ff_rviz_plugins_msgs::RobotState> 
       _robot_states;
 
+  std::mutex _markers_mutex;
+  visualization_msgs::MarkerArray _marker_array;
+
   void rviz_nav_goal_callback(const geometry_msgs::PoseStamped::ConstPtr& msg);
 
   void update_states(const ff_rviz_plugins_msgs::RobotStateArray::ConstPtr& msg);
 
-  void timer_callback(const ros::TimerEvent&);
-
-  void display_goals();
-
-  void remove_goal(int id);
-
-  void clear_goals();
+  void update_goal_markers();
 
   QString nav_goal_to_qstring(const geometry_msgs::PoseStamped& msg) const;
 };

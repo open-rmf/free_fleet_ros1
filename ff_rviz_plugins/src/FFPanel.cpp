@@ -29,7 +29,6 @@
 #include <free_fleet/messages/DestinationRequest.hpp>
 
 #include <visualization_msgs/Marker.h>
-#include <visualization_msgs/MarkerArray.h>
 
 #include "FFPanel.hpp"
 #include "FFPanelConfig.hpp"
@@ -64,8 +63,6 @@ FFPanel::FFPanel(QWidget* parent)
       &FFPanel::update_states, this);
   _nav_goal_markers_pub = _nh.advertise<visualization_msgs::MarkerArray>(
       panel_config.navigation_markers_topic, 10);
-  _display_timer = 
-      _nh.createTimer(ros::Duration(2.0), &FFPanel::timer_callback, this);
 }
 
 //==============================================================================
@@ -97,7 +94,7 @@ void FFPanel::update_nav_goal()
   const auto it = _nav_goals.find(selected_robot);
   if (it == _nav_goals.end())
     return;
-
+  
   _nav_goal_str_list.clear();
   for (const auto& ng : it->second)
     _nav_goal_str_list.append(nav_goal_to_qstring(ng));
@@ -105,8 +102,8 @@ void FFPanel::update_nav_goal()
   
   _nav_goal_list_model->setStringList(_nav_goal_str_list);
   _nav_goal_list_view->scrollToBottom();
-  
-  display_goals();
+
+  update_goal_markers();
 }
 
 //==============================================================================
@@ -121,10 +118,15 @@ void FFPanel::clear_nav_goal()
   if (it == _nav_goals.end())
     return;
 
-  it->second.clear();
+  it->second = {};
+
   nav_goals_lock.unlock();
 
-  clear_goals();
+  _nav_goal_str_list.clear();
+  _nav_goal_list_model->setStringList(_nav_goal_str_list);
+  _nav_goal_list_view->scrollToBottom();
+
+  update_goal_markers();
 }
 
 //==============================================================================
@@ -139,11 +141,17 @@ void FFPanel::delete_waypoint()
   if (it == _nav_goals.end() || it->second.empty())
     return;
 
-  size_t last_index = it->second.size() - 1;
   it->second.pop_back();
-  nav_goals_lock.unlock();
 
-  remove_goal(static_cast<int>(last_index));
+  _nav_goal_str_list.clear();
+  for (const auto& ng : it->second)
+    _nav_goal_str_list.append(nav_goal_to_qstring(ng));
+  nav_goals_lock.unlock();
+  
+  _nav_goal_list_model->setStringList(_nav_goal_str_list);
+  _nav_goal_list_view->scrollToBottom();
+
+  update_goal_markers();
 }
 
 //==============================================================================
@@ -354,41 +362,51 @@ void FFPanel::update_states(
 
 //==============================================================================
 
-void FFPanel::display_goals()
+void FFPanel::update_goal_markers()
 {
-  visualization_msgs::MarkerArray array;
-  array.markers.clear();
+  // clear up all the markers first
+  std::unique_lock<std::mutex> markers_lock(_markers_mutex);
+  for (auto& m : _marker_array.markers)
+  {
+    m.header.stamp = ros::Time::now();
+    m.action = visualization_msgs::Marker::DELETEALL;
+  }
+  _nav_goal_markers_pub.publish(_marker_array);
+
+  // create and publish an empty marker array first
+  _marker_array = visualization_msgs::MarkerArray();
 
   const std::string selected_robot =
       _robot_name_selector->currentText().toStdString();
 
   std::unique_lock<std::mutex> nav_goals_lock(_nav_goals_mutex);
   const auto it = _nav_goals.find(selected_robot);
-  if (it == _nav_goals.end())
+  if (it == _nav_goals.end() || it->second.empty())
     return;
 
+  // populate with new markers
   for (size_t i = 0; i < it->second.size(); ++i)
   {
-    visualization_msgs::Marker marker;
-    marker.header.stamp = ros::Time::now();
-    marker.header.frame_id = "map";
-    marker.ns = selected_robot + "/navigation_display";
-    marker.id = i;
-    marker.type = visualization_msgs::Marker::ARROW;
-    marker.action = visualization_msgs::Marker::MODIFY;
-    marker.pose = it->second[i].pose;
-    marker.scale.x = 0.7;
-    marker.scale.y = 0.1;
-    marker.scale.z = 0.1;
-    marker.color.r = 1.0;
-    marker.color.g = 0.0;
-    marker.color.b = 0.0;
-    marker.color.a = 0.6;
+    visualization_msgs::Marker arrow_marker;
+    arrow_marker.header.stamp = ros::Time::now();
+    arrow_marker.header.frame_id = "map";
+    arrow_marker.ns = selected_robot + "/arrow";
+    arrow_marker.id = i;
+    arrow_marker.type = visualization_msgs::Marker::ARROW;
+    arrow_marker.action = visualization_msgs::Marker::MODIFY;
+    arrow_marker.pose = it->second[i].pose;
+    arrow_marker.scale.x = 0.7;
+    arrow_marker.scale.y = 0.1;
+    arrow_marker.scale.z = 0.1;
+    arrow_marker.color.r = 1.0;
+    arrow_marker.color.g = 0.0;
+    arrow_marker.color.b = 0.0;
+    arrow_marker.color.a = 0.6;
 
     visualization_msgs::Marker text_marker;
     text_marker.header.stamp = ros::Time::now();
     text_marker.header.frame_id = "map";
-    text_marker.ns = selected_robot + "/navigation_order";
+    text_marker.ns = selected_robot + "/text";
     text_marker.id = i;
     text_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
     text_marker.action = visualization_msgs::Marker::MODIFY;
@@ -401,67 +419,10 @@ void FFPanel::display_goals()
     text_marker.color.a = 1.0;
     text_marker.text = std::to_string(i);
 
-    array.markers.push_back(marker);
-    array.markers.push_back(text_marker);
+    _marker_array.markers.push_back(arrow_marker);
+    _marker_array.markers.push_back(text_marker);
   }
-  _nav_goal_markers_pub.publish(array);
-}
-
-//==============================================================================
-
-void FFPanel::remove_goal(int id)
-{
-  visualization_msgs::MarkerArray array;
-  array.markers.clear();
-
-  const std::string selected_robot =
-      _robot_name_selector->currentText().toStdString();
-
-  visualization_msgs::Marker marker;
-  marker.header.stamp = ros::Time::now();
-  marker.header.frame_id = "map";
-  marker.ns = selected_robot + "/navigation_display";
-  marker.id = id;
-  marker.action = visualization_msgs::Marker::DELETE;
-
-  visualization_msgs::Marker text_marker;
-  text_marker.header.stamp = ros::Time::now();
-  text_marker.header.frame_id = "map";
-  text_marker.ns = selected_robot + "/navigation_order";
-  text_marker.id = i;
-  text_marker.action = visualization_msgs::Marker::DELETE;
-
-  array.markers.push_back(marker);
-  array.markers.push_back(text_marker);
-  _nav_goal_markers_pub.publish(array);
-}
-
-//==============================================================================
-
-void FFPanel::clear_goals()
-{
-  visualization_msgs::MarkerArray array;
-  array.markers.clear();
-
-  const std::string selected_robot =
-      _robot_name_selector->currentText().toStdString();
-
-  visualization_msgs::Marker marker;
-  marker.header.stamp = ros::Time::now();
-  marker.header.frame_id = "map";
-  marker.ns = selected_robot + "/navigation_display";
-  marker.action = visualization_msgs::Marker::DELETEALL;
-
-  array.markers.push_back(marker);
-  _nav_goal_markers_pub.publish(array);
-}
-
-//==============================================================================
-
-void FFPanel::timer_callback(const ros::TimerEvent&)
-{
-  // This callback is mainly for the case where the 
-  display_goals();
+  _nav_goal_markers_pub.publish(_marker_array);
 }
 
 //==============================================================================
