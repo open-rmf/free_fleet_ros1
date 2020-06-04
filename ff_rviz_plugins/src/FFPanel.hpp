@@ -36,6 +36,7 @@
 #include <rviz/panel.h>
 
 #include <ros/ros.h>
+#include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <ff_rviz_plugins_msgs/RobotStateArray.h>
@@ -50,6 +51,18 @@ class FFPanel : public rviz::Panel
 Q_OBJECT
 
 public:
+
+  using Pose = geometry_msgs::Pose;
+  using Marker = visualization_msgs::Marker;
+  using PoseStamped = geometry_msgs::PoseStamped;
+  using MarkerArray = visualization_msgs::MarkerArray;
+  using RobotStateArray = ff_rviz_plugins_msgs::RobotStateArray;
+
+  struct NavMarkers
+  {
+    MarkerArray arrow_markers;
+    MarkerArray text_markers;
+  };
 
   FFPanel(QWidget* parent = 0);
 
@@ -94,24 +107,25 @@ private:
   ros::Subscriber _state_array_relay_sub;
   ros::Publisher _nav_goal_markers_pub;
 
-  std::mutex _nav_goals_mutex;
-  std::unordered_map<std::string, std::vector<geometry_msgs::PoseStamped>> 
-      _nav_goals;
-
   std::mutex _robot_states_mutex;
   std::unordered_map<std::string, ff_rviz_plugins_msgs::RobotState> 
       _robot_states;
 
-  std::mutex _markers_mutex;
-  visualization_msgs::MarkerArray _marker_array;
+  std::mutex _nav_markers_mutex;
+  std::unordered_map<std::string, NavMarkers> _nav_markers_map;
+  std::string _current_nav_markers_owner;
 
   void rviz_nav_goal_callback(const geometry_msgs::PoseStamped::ConstPtr& msg);
 
-  void update_states(const ff_rviz_plugins_msgs::RobotStateArray::ConstPtr& msg);
+  void clear_nav_markers(const NavMarkers& nav_markers) const;
 
-  void update_goal_markers();
+  void set_nav_markers(const NavMarkers& nav_markers) const;
 
-  QString nav_goal_to_qstring(const geometry_msgs::PoseStamped& msg) const;
+  void set_goal_list(const NavMarkers& nav_markers);
+
+  void update_states(const ff_rviz_plugins_msgs::RobotStateArray::ConstPtr& msg); 
+
+  QString marker_to_qstring(const Marker& marker);
 };
 
 } // namespace free_fleet
