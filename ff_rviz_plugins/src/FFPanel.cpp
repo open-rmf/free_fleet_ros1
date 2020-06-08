@@ -93,78 +93,47 @@ void FFPanel::update_goals()
 
 //==============================================================================
 
-// void FFPanel::update_nav_goal()
-// {
-//   const std::string selected_robot =
-//       _robot_name_selector->currentText().toStdString();
+void FFPanel::clear_goals()
+{
+  const std::string selected_robot =
+      _robot_name_selector->currentText().toStdString();
 
-//   std::unique_lock<std::mutex> nav_goals_lock(_nav_goals_mutex);
-//   const auto it = _nav_goals.find(selected_robot);
-//   if (it == _nav_goals.end())
-//     return;
-  
-//   _nav_goal_str_list.clear();
-//   for (const auto& ng : it->second)
-//     _nav_goal_str_list.append(nav_goal_to_qstring(ng));
-//   nav_goals_lock.unlock();
-  
-//   _nav_goal_list_model->setStringList(_nav_goal_str_list);
-//   _nav_goal_list_view->scrollToBottom();
+  ReadLock robots_lock(_robots_mutex);
+  auto it = _robots.find(selected_robot);
+  if (it == _robots.end())
+    return;
 
-//   // update_goal_markers();
-// }
+  it->second.markers.markers = {};
+  robots_lock.unlock();
+
+  display_goal_list();
+  display_markers();
+}
 
 //==============================================================================
 
-// void FFPanel::clear_nav_goal()
-// {
-//   const std::string selected_robot =
-//       _robot_name_selector->currentText().toStdString();
+void FFPanel::delete_waypoint()
+{
+  const std::string selected_robot =
+      _robot_name_selector->currentText().toStdString();
 
-//   std::unique_lock<std::mutex> nav_goals_lock(_nav_goals_mutex);
-//   const auto it = _nav_goals.find(selected_robot);
-//   if (it == _nav_goals.end())
-//     return;
+  ReadLock robots_lock(_robots_mutex);
+  auto it = _robots.find(selected_robot);
+  if (it == _robots.end() || it->second.markers.markers.empty())
+    return;
 
-//   it->second = {};
+  // Pop both the arrow and text marker
+  it->second.markers.markers.pop_back();
+  it->second.markers.markers.pop_back();
+  robots_lock.unlock();
 
-//   nav_goals_lock.unlock();
-
-//   _nav_goal_str_list.clear();
-//   _nav_goal_list_model->setStringList(_nav_goal_str_list);
-//   _nav_goal_list_view->scrollToBottom();
-
-//   // update_goal_markers();
-// }
+  display_goal_list();
+  display_markers();
+}
 
 //==============================================================================
 
-// void FFPanel::delete_waypoint()
-// {
-//   const std::string selected_robot =
-//       _robot_name_selector->currentText().toStdString();
-
-//   std::unique_lock<std::mutex> nav_goals_lock(_nav_goals_mutex);
-//   const auto it = _nav_goals.find(selected_robot);
-//   if (it == _nav_goals.end() || it->second.empty())
-//     return;
-
-//   it->second.pop_back();
-
-//   _nav_goal_str_list.clear();
-//   for (const auto& ng : it->second)
-//     _nav_goal_str_list.append(nav_goal_to_qstring(ng));
-//   nav_goals_lock.unlock();
-  
-//   _nav_goal_list_model->setStringList(_nav_goal_str_list);
-//   _nav_goal_list_view->scrollToBottom();
-
-//   // update_goal_markers();
-// }
-
-//==============================================================================
-
-void FFPanel::send_nav_goal()
+void FFPanel::send_goals()
 {
   const std::string selected_robot =
       _robot_name_selector->currentText().toStdString();
@@ -236,24 +205,24 @@ QGroupBox* FFPanel::create_nav_group_box()
   _nav_goal_list_view->setModel(_nav_goal_list_model);
   _nav_goal_list_view->setToolTip(QString("x(m), y(m), yaw(rad)"));
 
-  _clear_goal_button = new QPushButton("&Clear Goal");
+  _clear_goals_button = new QPushButton("&Clear Goal");
   _delete_waypoint_button = new QPushButton("&Delete Waypoint");
-  _send_goal_button = new QPushButton("&Send Goal");
+  _send_goals_button = new QPushButton("&Send Goal");
 
   QSizePolicy size_policy(QSizePolicy::Minimum, QSizePolicy::Minimum);
   size_policy.setHorizontalStretch(0);
   size_policy.setVerticalStretch(0);
   size_policy.setHeightForWidth(
-      _clear_goal_button->sizePolicy().hasHeightForWidth());
-  _clear_goal_button->setSizePolicy(size_policy);
+      _clear_goals_button->sizePolicy().hasHeightForWidth());
+  _clear_goals_button->setSizePolicy(size_policy);
   _delete_waypoint_button->setSizePolicy(size_policy);
-  _send_goal_button->setSizePolicy(size_policy);
+  _send_goals_button->setSizePolicy(size_policy);
 
   QGridLayout* layout = new QGridLayout;
   layout->addWidget(_nav_goal_list_view, 0, 0, 6, 3);
-  layout->addWidget(_clear_goal_button, 0, 3, 2, 1);
+  layout->addWidget(_clear_goals_button, 0, 3, 2, 1);
   layout->addWidget(_delete_waypoint_button, 2, 3, 2, 1);
-  layout->addWidget(_send_goal_button, 4, 3, 2, 1);
+  layout->addWidget(_send_goals_button, 4, 3, 2, 1);
 
   QGroupBox* group_box = new QGroupBox("Navigation");
   group_box->setLayout(layout);
@@ -312,12 +281,12 @@ void FFPanel::create_connections()
   connect(_robot_name_selector, SIGNAL(currentTextChanged(const QString &)),
       this, SLOT(update_goals()));
 
-  // connect(_clear_goal_button, &QPushButton::clicked, this,
-  //     &FFPanel::clear_nav_goal);
-  // connect(_delete_waypoint_button, &QPushButton::clicked, this,
-  //     &FFPanel::delete_waypoint);
-  // connect(_send_goal_button, &QPushButton::clicked, this,
-  //     &FFPanel::send_nav_goal);
+  connect(_clear_goals_button, &QPushButton::clicked, this,
+      &FFPanel::clear_goals);
+  connect(_delete_waypoint_button, &QPushButton::clicked, this,
+      &FFPanel::delete_waypoint);
+  connect(_send_goals_button, &QPushButton::clicked, this,
+      &FFPanel::send_goals);
 }
 
 //==============================================================================

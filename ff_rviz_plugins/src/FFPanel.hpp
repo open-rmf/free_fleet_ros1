@@ -73,10 +73,9 @@ public Q_SLOTS:
 
   void update_robot_name_selector();
   void update_goals();
-  // void update_nav_goal();
-  void clear_nav_goal();
+  void clear_goals();
   void delete_waypoint();
-  void send_nav_goal();
+  void send_goals();
 
 private:
 
@@ -94,9 +93,9 @@ private:
   QStringListModel* _nav_goal_list_model;
   QStringList _nav_goal_str_list;
 
-  QPushButton* _clear_goal_button;
+  QPushButton* _clear_goals_button;
   QPushButton* _delete_waypoint_button;
-  QPushButton* _send_goal_button;
+  QPushButton* _send_goals_button;
 
   QLabel* _debug_label;
 
@@ -113,12 +112,6 @@ private:
   std::mutex _robots_mutex;
   std::unordered_map<std::string, RobotFields> _robots;
 
-  // std::mutex _robot_states_mutex;
-  // std::unordered_map<std::string, RobotState> _robot_states;
-
-  // std::mutex _markers_mutex;
-  // std::unordered_map<std::string, MarkerArray> _marker_arrays;
-
   void rviz_nav_goal_callback(const PoseStamped::ConstPtr& msg);
 
   void update_states(const RobotStateArray::ConstPtr& msg);
@@ -128,10 +121,6 @@ private:
   void display_markers();
 
   void clear_markers() const;
-
-  // void update_goal_markers();
-
-  // QString nav_goal_to_qstring(const PoseStamped& msg) const;
 
   QString marker_to_qstring(const Marker& marker) const;
 };
