@@ -18,4 +18,5 @@
   <exec_depend>move_base</exec_depend>
   <exec_depend>map_server</exec_depend>
   <exec_depend>tf2</exec_depend>
+  <exec_depend>gazebo_ros_pkgs</exec_depend>
 </package>
