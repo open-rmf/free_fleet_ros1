@@ -34,6 +34,7 @@
 #include <QStringListModel>
 
 #include <rviz/panel.h>
+#include <rviz_visual_tools/rviz_visual_tools.h>
 
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -50,13 +51,29 @@ class FFPanel : public rviz::Panel
 Q_OBJECT
 
 public:
+  
+  using ReadLock = std::unique_lock<std::mutex>;
+  using WriteLock = std::unique_lock<std::mutex>;
+
+  using Marker = visualization_msgs::Marker;
+  using PoseStamped = geometry_msgs::PoseStamped;
+  using MarkerArray = visualization_msgs::MarkerArray;
+  using RobotState = ff_rviz_plugins_msgs::RobotState;
+  using RobotStateArray = ff_rviz_plugins_msgs::RobotStateArray;
 
   FFPanel(QWidget* parent = 0);
+
+  struct RobotFields
+  {
+    RobotState state;
+    MarkerArray markers;
+  };
 
 public Q_SLOTS:
 
   void update_robot_name_selector();
-  void update_nav_goal();
+  void update_goals();
+  // void update_nav_goal();
   void clear_nav_goal();
   void delete_waypoint();
   void send_nav_goal();
@@ -72,8 +89,6 @@ private:
 
   QLabel* _fleet_name;
   QComboBox* _robot_name_selector;
-
-  QTextEdit* _nav_goal_edit;
 
   QListView* _nav_goal_list_view;
   QStringListModel* _nav_goal_list_model;
@@ -92,26 +107,33 @@ private:
   ros::NodeHandle _nh;
   ros::Subscriber _rviz_nav_goal_sub;
   ros::Subscriber _state_array_relay_sub;
-  ros::Publisher _nav_goal_markers_pub;
 
-  std::mutex _nav_goals_mutex;
-  std::unordered_map<std::string, std::vector<geometry_msgs::PoseStamped>> 
-      _nav_goals;
+  rviz_visual_tools::RvizVisualToolsPtr _visual_tools;
 
-  std::mutex _robot_states_mutex;
-  std::unordered_map<std::string, ff_rviz_plugins_msgs::RobotState> 
-      _robot_states;
+  std::mutex _robots_mutex;
+  std::unordered_map<std::string, RobotFields> _robots;
 
-  std::mutex _markers_mutex;
-  visualization_msgs::MarkerArray _marker_array;
+  // std::mutex _robot_states_mutex;
+  // std::unordered_map<std::string, RobotState> _robot_states;
 
-  void rviz_nav_goal_callback(const geometry_msgs::PoseStamped::ConstPtr& msg);
+  // std::mutex _markers_mutex;
+  // std::unordered_map<std::string, MarkerArray> _marker_arrays;
 
-  void update_states(const ff_rviz_plugins_msgs::RobotStateArray::ConstPtr& msg);
+  void rviz_nav_goal_callback(const PoseStamped::ConstPtr& msg);
 
-  void update_goal_markers();
+  void update_states(const RobotStateArray::ConstPtr& msg);
 
-  QString nav_goal_to_qstring(const geometry_msgs::PoseStamped& msg) const;
+  void display_goal_list();
+
+  void display_markers();
+
+  void clear_markers() const;
+
+  // void update_goal_markers();
+
+  // QString nav_goal_to_qstring(const PoseStamped& msg) const;
+
+  QString marker_to_qstring(const Marker& marker) const;
 };
 
 } // namespace free_fleet

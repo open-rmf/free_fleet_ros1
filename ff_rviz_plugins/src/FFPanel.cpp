@@ -61,8 +61,10 @@ FFPanel::FFPanel(QWidget* parent)
   _state_array_relay_sub = _nh.subscribe(
       panel_config.panel_state_array_topic, 2, 
       &FFPanel::update_states, this);
-  _nav_goal_markers_pub = _nh.advertise<visualization_msgs::MarkerArray>(
-      panel_config.navigation_markers_topic, 10);
+
+  _visual_tools.reset(
+      new rviz_visual_tools::RvizVisualTools(
+          "map", panel_config.navigation_markers_topic));
 }
 
 //==============================================================================
@@ -72,87 +74,93 @@ void FFPanel::update_robot_name_selector()
   _robot_name_selector->blockSignals(true);
   _robot_name_selector->clear();
 
-  std::unique_lock<std::mutex> robot_states_lock(_robot_states_mutex);
-  for (auto it : _robot_states)
-  {
+  ReadLock robots_lock(_robots_mutex);
+  for (const auto it : _robots)
     _robot_name_selector->addItem(QString(it.first.c_str()));
-  }
-  _robot_name_selector->model()->sort(0);
-  robot_states_lock.unlock();
+  robots_lock.unlock();
 
+  _robot_name_selector->model()->sort(0);
   _robot_name_selector->blockSignals(false);
 }
 
 //==============================================================================
 
-void FFPanel::update_nav_goal()
+void FFPanel::update_goals()
 {
-  const std::string selected_robot =
-      _robot_name_selector->currentText().toStdString();
-
-  std::unique_lock<std::mutex> nav_goals_lock(_nav_goals_mutex);
-  const auto it = _nav_goals.find(selected_robot);
-  if (it == _nav_goals.end())
-    return;
-  
-  _nav_goal_str_list.clear();
-  for (const auto& ng : it->second)
-    _nav_goal_str_list.append(nav_goal_to_qstring(ng));
-  nav_goals_lock.unlock();
-  
-  _nav_goal_list_model->setStringList(_nav_goal_str_list);
-  _nav_goal_list_view->scrollToBottom();
-
-  update_goal_markers();
+  display_goal_list();
+  display_markers();
 }
 
 //==============================================================================
 
-void FFPanel::clear_nav_goal()
-{
-  const std::string selected_robot =
-      _robot_name_selector->currentText().toStdString();
+// void FFPanel::update_nav_goal()
+// {
+//   const std::string selected_robot =
+//       _robot_name_selector->currentText().toStdString();
 
-  std::unique_lock<std::mutex> nav_goals_lock(_nav_goals_mutex);
-  const auto it = _nav_goals.find(selected_robot);
-  if (it == _nav_goals.end())
-    return;
+//   std::unique_lock<std::mutex> nav_goals_lock(_nav_goals_mutex);
+//   const auto it = _nav_goals.find(selected_robot);
+//   if (it == _nav_goals.end())
+//     return;
+  
+//   _nav_goal_str_list.clear();
+//   for (const auto& ng : it->second)
+//     _nav_goal_str_list.append(nav_goal_to_qstring(ng));
+//   nav_goals_lock.unlock();
+  
+//   _nav_goal_list_model->setStringList(_nav_goal_str_list);
+//   _nav_goal_list_view->scrollToBottom();
 
-  it->second = {};
-
-  nav_goals_lock.unlock();
-
-  _nav_goal_str_list.clear();
-  _nav_goal_list_model->setStringList(_nav_goal_str_list);
-  _nav_goal_list_view->scrollToBottom();
-
-  update_goal_markers();
-}
+//   // update_goal_markers();
+// }
 
 //==============================================================================
 
-void FFPanel::delete_waypoint()
-{
-  const std::string selected_robot =
-      _robot_name_selector->currentText().toStdString();
+// void FFPanel::clear_nav_goal()
+// {
+//   const std::string selected_robot =
+//       _robot_name_selector->currentText().toStdString();
 
-  std::unique_lock<std::mutex> nav_goals_lock(_nav_goals_mutex);
-  const auto it = _nav_goals.find(selected_robot);
-  if (it == _nav_goals.end() || it->second.empty())
-    return;
+//   std::unique_lock<std::mutex> nav_goals_lock(_nav_goals_mutex);
+//   const auto it = _nav_goals.find(selected_robot);
+//   if (it == _nav_goals.end())
+//     return;
 
-  it->second.pop_back();
+//   it->second = {};
 
-  _nav_goal_str_list.clear();
-  for (const auto& ng : it->second)
-    _nav_goal_str_list.append(nav_goal_to_qstring(ng));
-  nav_goals_lock.unlock();
+//   nav_goals_lock.unlock();
+
+//   _nav_goal_str_list.clear();
+//   _nav_goal_list_model->setStringList(_nav_goal_str_list);
+//   _nav_goal_list_view->scrollToBottom();
+
+//   // update_goal_markers();
+// }
+
+//==============================================================================
+
+// void FFPanel::delete_waypoint()
+// {
+//   const std::string selected_robot =
+//       _robot_name_selector->currentText().toStdString();
+
+//   std::unique_lock<std::mutex> nav_goals_lock(_nav_goals_mutex);
+//   const auto it = _nav_goals.find(selected_robot);
+//   if (it == _nav_goals.end() || it->second.empty())
+//     return;
+
+//   it->second.pop_back();
+
+//   _nav_goal_str_list.clear();
+//   for (const auto& ng : it->second)
+//     _nav_goal_str_list.append(nav_goal_to_qstring(ng));
+//   nav_goals_lock.unlock();
   
-  _nav_goal_list_model->setStringList(_nav_goal_str_list);
-  _nav_goal_list_view->scrollToBottom();
+//   _nav_goal_list_model->setStringList(_nav_goal_str_list);
+//   _nav_goal_list_view->scrollToBottom();
 
-  update_goal_markers();
-}
+//   // update_goal_markers();
+// }
 
 //==============================================================================
 
@@ -160,6 +168,8 @@ void FFPanel::send_nav_goal()
 {
   const std::string selected_robot =
       _robot_name_selector->currentText().toStdString();
+  if (selected_robot.empty())
+    return;
 
   messages::PathRequest path_request;
   path_request.fleet_name = _fleet_name->text().toStdString();
@@ -167,20 +177,21 @@ void FFPanel::send_nav_goal()
   path_request.path.clear();
   path_request.task_id = generate_random_task_id(20);
 
-  std::unique_lock<std::mutex> nav_goals_lock(_nav_goals_mutex);
-  const auto it = _nav_goals.find(selected_robot);
-  for (const auto& ng : it->second)
+  ReadLock robots_lock(_robots_mutex);
+  const auto it = _robots.find(selected_robot);
+  for (const auto& m : it->second.markers.markers)
   {
+    ros::Time time_now = ros::Time::now();
     path_request.path.push_back({
-      static_cast<int32_t>(ng.header.stamp.sec),
-      ng.header.stamp.nsec,
-      static_cast<float>(ng.pose.position.x),
-      static_cast<float>(ng.pose.position.y),
-      static_cast<float>(get_yaw_from_quat(ng.pose.orientation)),
+      static_cast<int32_t>(time_now.sec),
+      time_now.nsec,
+      static_cast<float>(m.pose.position.x),
+      static_cast<float>(m.pose.position.y),
+      static_cast<float>(get_yaw_from_quat(m.pose.orientation)),
       ""
     });
   }
-  nav_goals_lock.unlock();
+  robots_lock.unlock();
 
   if (!_free_fleet_server->send_path_request(path_request))
   {
@@ -299,14 +310,14 @@ void FFPanel::create_connections()
   connect(this, SIGNAL(configChanged()), this,
       SLOT(update_robot_name_selector()));
   connect(_robot_name_selector, SIGNAL(currentTextChanged(const QString &)),
-      this, SLOT(update_nav_goal()));
+      this, SLOT(update_goals()));
 
-  connect(_clear_goal_button, &QPushButton::clicked, this,
-      &FFPanel::clear_nav_goal);
-  connect(_delete_waypoint_button, &QPushButton::clicked, this,
-      &FFPanel::delete_waypoint);
-  connect(_send_goal_button, &QPushButton::clicked, this,
-      &FFPanel::send_nav_goal);
+  // connect(_clear_goal_button, &QPushButton::clicked, this,
+  //     &FFPanel::clear_nav_goal);
+  // connect(_delete_waypoint_button, &QPushButton::clicked, this,
+  //     &FFPanel::delete_waypoint);
+  // connect(_send_goal_button, &QPushButton::clicked, this,
+  //     &FFPanel::send_nav_goal);
 }
 
 //==============================================================================
@@ -316,12 +327,54 @@ void FFPanel::rviz_nav_goal_callback(
 {
   const std::string selected_robot =
       _robot_name_selector->currentText().toStdString();
+  if (selected_robot.empty())
+    return;
 
-  std::unique_lock<std::mutex> nav_goal_lock(_nav_goals_mutex);
-  _nav_goals[selected_robot].push_back(*msg);
-  nav_goal_lock.unlock();
-  
-  update_nav_goal();
+  WriteLock robots_lock(_robots_mutex);
+  const auto it = _robots.find(selected_robot);
+  if (it == _robots.end())
+    return;
+
+  int current_id = static_cast<int>(it->second.markers.markers.size() / 2);
+
+  visualization_msgs::Marker arrow_marker;
+  arrow_marker.header.stamp = ros::Time::now();
+  arrow_marker.header.frame_id = "map";
+  arrow_marker.ns = selected_robot + "/arrow";
+  arrow_marker.id = current_id;
+  arrow_marker.type = visualization_msgs::Marker::ARROW;
+  arrow_marker.action = visualization_msgs::Marker::MODIFY;
+  arrow_marker.pose = msg->pose;
+  arrow_marker.scale.x = 0.7;
+  arrow_marker.scale.y = 0.1;
+  arrow_marker.scale.z = 0.1;
+  arrow_marker.color.r = 1.0;
+  arrow_marker.color.g = 0.0;
+  arrow_marker.color.b = 0.0;
+  arrow_marker.color.a = 0.6;
+
+  visualization_msgs::Marker text_marker;
+  text_marker.header.stamp = ros::Time::now();
+  text_marker.header.frame_id = "map";
+  text_marker.ns = selected_robot + "/text";
+  text_marker.id = current_id;
+  text_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+  text_marker.action = visualization_msgs::Marker::MODIFY;
+  text_marker.pose = msg->pose;
+  text_marker.pose.position.x -= 0.2;
+  text_marker.scale.z = 0.3;
+  text_marker.color.r = 1.0;
+  text_marker.color.g = 0.0;
+  text_marker.color.b = 0.0;
+  text_marker.color.a = 1.0;
+  text_marker.text = std::to_string(current_id);
+
+  it->second.markers.markers.push_back(arrow_marker);
+  it->second.markers.markers.push_back(text_marker);
+  robots_lock.unlock();
+
+  display_goal_list();
+  display_markers();
 }
 
 //==============================================================================
@@ -329,20 +382,25 @@ void FFPanel::rviz_nav_goal_callback(
 void FFPanel::update_states(
     const ff_rviz_plugins_msgs::RobotStateArray::ConstPtr& msg)
 {
-  std::unique_lock<std::mutex> robot_states_lock(_robot_states_mutex);
+  std::unique_lock<std::mutex> robots_lock(_robots_mutex);
   bool new_robot_found = false;
   for (const auto& rs : msg->states)
   {
     std::string robot_name = rs.name;
-    if (_robot_states.find(robot_name) == _robot_states.end())
+    if (_robots.find(robot_name) == _robots.end())
     {
       new_robot_found = true;
-      std::unique_lock<std::mutex> nav_goals_lock(_nav_goals_mutex);
-      _nav_goals[rs.name] = {};
+      _robots[rs.name] = RobotFields {
+        rs,
+        MarkerArray()
+      };
     }
-    _robot_states[rs.name] = rs;
+    else
+    {
+      _robots[rs.name].state = rs;
+    }
   }
-  robot_states_lock.unlock();
+  robots_lock.unlock();
 
   if (new_robot_found)
   {
@@ -354,7 +412,7 @@ void FFPanel::update_states(
   {
     std::string debug_label_str = 
         "Currently handling " 
-        + std::to_string(_robot_states.size()) 
+        + std::to_string(_robots.size()) 
         + " robots...";
     _debug_label->setText(QString::fromStdString(debug_label_str));
   }
@@ -362,73 +420,121 @@ void FFPanel::update_states(
 
 //==============================================================================
 
-void FFPanel::update_goal_markers()
+// void FFPanel::update_goal_markers()
+// {
+//   // clear up all the markers first
+//   std::unique_lock<std::mutex> markers_lock(_markers_mutex);
+//   for (auto& m : _marker_array.markers)
+//   {
+//     m.header.stamp = ros::Time::now();
+//     m.action = visualization_msgs::Marker::DELETEALL;
+//   }
+//   _nav_goal_markers_pub.publish(_marker_array);
+
+//   // create and publish an empty marker array first
+//   _marker_array = visualization_msgs::MarkerArray();
+
+//   const std::string selected_robot =
+//       _robot_name_selector->currentText().toStdString();
+
+//   std::unique_lock<std::mutex> nav_goals_lock(_nav_goals_mutex);
+//   const auto it = _nav_goals.find(selected_robot);
+//   if (it == _nav_goals.end() || it->second.empty())
+//     return;
+
+//   // populate with new markers
+//   for (size_t i = 0; i < it->second.size(); ++i)
+//   {
+//     visualization_msgs::Marker arrow_marker;
+//     arrow_marker.header.stamp = ros::Time::now();
+//     arrow_marker.header.frame_id = "map";
+//     arrow_marker.ns = selected_robot + "/arrow";
+//     arrow_marker.id = i;
+//     arrow_marker.type = visualization_msgs::Marker::ARROW;
+//     arrow_marker.action = visualization_msgs::Marker::MODIFY;
+//     arrow_marker.pose = it->second[i].pose;
+//     arrow_marker.scale.x = 0.7;
+//     arrow_marker.scale.y = 0.1;
+//     arrow_marker.scale.z = 0.1;
+//     arrow_marker.color.r = 1.0;
+//     arrow_marker.color.g = 0.0;
+//     arrow_marker.color.b = 0.0;
+//     arrow_marker.color.a = 0.6;
+
+//     visualization_msgs::Marker text_marker;
+//     text_marker.header.stamp = ros::Time::now();
+//     text_marker.header.frame_id = "map";
+//     text_marker.ns = selected_robot + "/text";
+//     text_marker.id = i;
+//     text_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+//     text_marker.action = visualization_msgs::Marker::MODIFY;
+//     text_marker.pose = it->second[i].pose;
+//     text_marker.pose.position.x -= 0.2;
+//     text_marker.scale.z = 0.3;
+//     text_marker.color.r = 1.0;
+//     text_marker.color.g = 0.0;
+//     text_marker.color.b = 0.0;
+//     text_marker.color.a = 1.0;
+//     text_marker.text = std::to_string(i);
+
+//     _marker_array.markers.push_back(arrow_marker);
+//     _marker_array.markers.push_back(text_marker);
+//   }
+//   _nav_goal_markers_pub.publish(_marker_array);
+// }
+
+//==============================================================================
+
+void FFPanel::display_goal_list()
 {
-  // clear up all the markers first
-  std::unique_lock<std::mutex> markers_lock(_markers_mutex);
-  for (auto& m : _marker_array.markers)
-  {
-    m.header.stamp = ros::Time::now();
-    m.action = visualization_msgs::Marker::DELETEALL;
-  }
-  _nav_goal_markers_pub.publish(_marker_array);
-
-  // create and publish an empty marker array first
-  _marker_array = visualization_msgs::MarkerArray();
-
   const std::string selected_robot =
       _robot_name_selector->currentText().toStdString();
 
-  std::unique_lock<std::mutex> nav_goals_lock(_nav_goals_mutex);
-  const auto it = _nav_goals.find(selected_robot);
-  if (it == _nav_goals.end() || it->second.empty())
+  ReadLock robots_lock(_robots_mutex);
+  const auto it = _robots.find(selected_robot);
+  if (it == _robots.end())
     return;
-
-  // populate with new markers
-  for (size_t i = 0; i < it->second.size(); ++i)
-  {
-    visualization_msgs::Marker arrow_marker;
-    arrow_marker.header.stamp = ros::Time::now();
-    arrow_marker.header.frame_id = "map";
-    arrow_marker.ns = selected_robot + "/arrow";
-    arrow_marker.id = i;
-    arrow_marker.type = visualization_msgs::Marker::ARROW;
-    arrow_marker.action = visualization_msgs::Marker::MODIFY;
-    arrow_marker.pose = it->second[i].pose;
-    arrow_marker.scale.x = 0.7;
-    arrow_marker.scale.y = 0.1;
-    arrow_marker.scale.z = 0.1;
-    arrow_marker.color.r = 1.0;
-    arrow_marker.color.g = 0.0;
-    arrow_marker.color.b = 0.0;
-    arrow_marker.color.a = 0.6;
-
-    visualization_msgs::Marker text_marker;
-    text_marker.header.stamp = ros::Time::now();
-    text_marker.header.frame_id = "map";
-    text_marker.ns = selected_robot + "/text";
-    text_marker.id = i;
-    text_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-    text_marker.action = visualization_msgs::Marker::MODIFY;
-    text_marker.pose = it->second[i].pose;
-    text_marker.pose.position.x -= 0.2;
-    text_marker.scale.z = 0.3;
-    text_marker.color.r = 1.0;
-    text_marker.color.g = 0.0;
-    text_marker.color.b = 0.0;
-    text_marker.color.a = 1.0;
-    text_marker.text = std::to_string(i);
-
-    _marker_array.markers.push_back(arrow_marker);
-    _marker_array.markers.push_back(text_marker);
-  }
-  _nav_goal_markers_pub.publish(_marker_array);
+  
+  _nav_goal_str_list.clear();
+  for (size_t i = 0; i < it->second.markers.markers.size(); i+=2)
+    _nav_goal_str_list.append(marker_to_qstring(it->second.markers.markers[i]));
+  robots_lock.unlock();
+  
+  _nav_goal_list_model->setStringList(_nav_goal_str_list);
+  _nav_goal_list_view->scrollToBottom();
 }
 
 //==============================================================================
 
-QString FFPanel::nav_goal_to_qstring(
-    const geometry_msgs::PoseStamped& msg) const
+void FFPanel::display_markers()
+{
+  clear_markers();
+  
+  const std::string selected_robot =
+      _robot_name_selector->currentText().toStdString();
+  
+  ReadLock robots_lock(_robots_mutex);
+  const auto it = _robots.find(selected_robot);
+  if (it == _robots.end())
+    return;
+
+  for (auto& m : it->second.markers.markers)
+    m.header.stamp = ros::Time::now();
+
+  _visual_tools->publishMarkers(it->second.markers);
+}
+
+//==============================================================================
+
+void FFPanel::clear_markers() const
+{
+  _visual_tools->deleteAllMarkers();
+  _visual_tools->trigger();
+}
+
+//==============================================================================
+
+QString FFPanel::marker_to_qstring(const Marker& marker) const
 {
   auto to_string_precision = [](double val, int precision) 
   {
@@ -439,9 +545,10 @@ QString FFPanel::nav_goal_to_qstring(
   };
 
   std::ostringstream ss;
-  ss << "x: " << to_string_precision(msg.pose.position.x, 2) 
-      << ", y: " << to_string_precision(msg.pose.position.y, 2) 
-      << ", yaw: " << to_string_precision(get_yaw_from_quat(msg.pose.orientation), 2);
+  ss << "x: " << to_string_precision(marker.pose.position.x, 2) 
+      << ", y: " << to_string_precision(marker.pose.position.y, 2) 
+      << ", yaw: " 
+      << to_string_precision(get_yaw_from_quat(marker.pose.orientation), 2);
 
   return QString::fromStdString(ss.str());
 }

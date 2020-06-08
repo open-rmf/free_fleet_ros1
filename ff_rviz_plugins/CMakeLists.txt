@@ -23,6 +23,7 @@ find_package(catkin QUIET COMPONENTS
   visualization_msgs
   pluginlib
   rviz
+  rviz_visual_tools
   ff_rviz_plugins_msgs
 )
 

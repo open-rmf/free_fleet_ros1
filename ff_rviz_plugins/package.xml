@@ -11,6 +11,7 @@
 
   <depend>pluginlib</depend>
   <depend>rviz</depend>
+  <depend>rviz_visual_tools</depend>
   <depend>roscpp</depend>
   <depend>geometry_msgs</depend>
   <depend>visualization_msgs</depend>
