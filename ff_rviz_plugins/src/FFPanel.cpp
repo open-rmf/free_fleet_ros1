@@ -85,8 +85,19 @@ void FFPanel::update_robot_name_selector()
 
 //==============================================================================
 
-void FFPanel::update_goals()
+void FFPanel::updated_robot_name()
 {
+  const std::string selected_robot =
+      _robot_name_selector->currentText().toStdString();
+
+  ReadLock robots_lock(_robots_mutex);
+  auto it = _robots.find(selected_robot);
+  if (it == _robots.end())
+    return;
+
+  display_state(it->second.state);
+  robots_lock.unlock();
+  
   display_goal_list();
   display_markers();
 }
@@ -162,12 +173,34 @@ void FFPanel::send_goals()
   }
   robots_lock.unlock();
 
-  if (!_free_fleet_server->send_path_request(path_request))
-  {
-    std::string debug_str = "Failed to send navigation request...";
-    _debug_label->setText(QString::fromStdString(debug_str));
+  std::string debug_str = _free_fleet_server->send_path_request(path_request) ?
+      "Sent navigation request..." :
+      "Failed to send navigation request...";
+  _debug_label->setText(QString::fromStdString(debug_str));
+}
+
+//==============================================================================
+
+void FFPanel::send_mode_request()
+{
+  const std::string selected_robot =
+      _robot_name_selector->currentText().toStdString();
+  if (selected_robot.empty())
     return;
-  }
+
+  messages::ModeRequest mode_request;
+  mode_request.fleet_name = _fleet_name->text().toStdString();
+  mode_request.robot_name = selected_robot;
+  if (_pause_radio_button->isChecked())
+    mode_request.mode.mode = messages::RobotMode::MODE_PAUSED;
+  else if (_resume_radio_button->isChecked())
+    mode_request.mode.mode = messages::RobotMode::MODE_MOVING;
+  mode_request.task_id = generate_random_task_id(20);
+
+  std::string debug_str = _free_fleet_server->send_mode_request(mode_request) ?
+      "Sent mode request..." :
+      "Failed to send mode request...";
+  _debug_label->setText(QString::fromStdString(debug_str));
 }
 
 //==============================================================================
@@ -191,6 +224,58 @@ QGroupBox* FFPanel::create_robot_group_box()
   layout->addWidget(_robot_name_selector, 1, 1, 1, 3);
 
   QGroupBox* group_box = new QGroupBox("Selection");
+  group_box->setLayout(layout);
+  return group_box;
+}
+
+//==============================================================================
+
+QGroupBox* FFPanel::create_state_group_box()
+{
+  std::vector<QLabel*> field_labels = {
+    new QLabel("model"),
+    new QLabel("task id"),
+    new QLabel("mode"),
+    new QLabel("battery (%)"),
+    new QLabel("location"),
+    new QLabel("time (sec)"),
+    new QLabel("x (m)"),
+    new QLabel("y (m)"),
+    new QLabel("yaw (rad)"),
+    new QLabel("level")
+  };
+  for (auto& f : field_labels)
+    f->setStyleSheet(
+        "border-width: 1px;"
+        "border-style: solid;"
+        "border-color: transparent darkgray darkgray transparent;"
+        "font: italic;");
+
+  QGridLayout* layout = new QGridLayout;
+  layout->addWidget(field_labels[0], 0, 0, 1, 2);
+  layout->addWidget(field_labels[1], 1, 0, 1, 2);
+  layout->addWidget(field_labels[2], 2, 0, 1, 2);
+  layout->addWidget(field_labels[3], 3, 0, 1, 2);
+  layout->addWidget(field_labels[4], 4, 0, 5, 1);
+  layout->addWidget(field_labels[5], 4, 1, 1, 1);
+  layout->addWidget(field_labels[6], 5, 1, 1, 1);
+  layout->addWidget(field_labels[7], 6, 1, 1, 1);
+  layout->addWidget(field_labels[8], 7, 1, 1, 1);
+  layout->addWidget(field_labels[9], 8, 1, 1, 1);
+
+  _state_labels.clear();
+  for (size_t i = 0; i < 9; ++i)
+  {
+    QLabel* state_label = new QLabel("");
+    state_label->setStyleSheet(
+        "border-width: 1px;"
+        "border-style: solid;"
+        "border-color: transparent transparent darkgray transparent;");
+    _state_labels.push_back(state_label);
+    layout->addWidget(state_label, i, 2, 1, 2);
+  }
+
+  QGroupBox* group_box = new QGroupBox("State");
   group_box->setLayout(layout);
   return group_box;
 }
@@ -231,6 +316,33 @@ QGroupBox* FFPanel::create_nav_group_box()
 
 //==============================================================================
 
+QGroupBox* FFPanel::create_mode_group_box()
+{
+  _pause_radio_button = new QRadioButton("Pause");
+  _pause_radio_button->setChecked(true);
+  _resume_radio_button = new QRadioButton("Resume");
+
+  _send_mode_request_button = new QPushButton("Send &Mode Request");
+
+  QSizePolicy size_policy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+  size_policy.setHorizontalStretch(0);
+  size_policy.setVerticalStretch(0);
+  size_policy.setHeightForWidth(
+      _send_mode_request_button->sizePolicy().hasHeightForWidth());
+  _send_mode_request_button->setSizePolicy(size_policy);
+
+  QGridLayout* layout = new QGridLayout;
+  layout->addWidget(_pause_radio_button, 0, 0, 1, 1);
+  layout->addWidget(_resume_radio_button, 1, 0, 1, 1);
+  layout->addWidget(_send_mode_request_button, 0, 1, 2, 1);
+
+  QGroupBox* group_box = new QGroupBox("Mode");
+  group_box->setLayout(layout);
+  return group_box;
+}
+
+//==============================================================================
+
 QGroupBox* FFPanel::create_debug_group_box()
 {
   _debug_label = new QLabel("Panel started...");
@@ -248,13 +360,17 @@ QGroupBox* FFPanel::create_debug_group_box()
 void FFPanel::create_layout()
 {
   QGroupBox* robot_gb = create_robot_group_box();
+  QGroupBox* state_gb = create_state_group_box();
   QGroupBox* navigation_gb = create_nav_group_box();
+  QGroupBox* mode_gb = create_mode_group_box();
   QGroupBox* debug_gb = create_debug_group_box();
 
   QGridLayout* layout = new QGridLayout;
   layout->addWidget(robot_gb, 0, 0, 1, 1);
-  layout->addWidget(navigation_gb, 1, 0, 6, 1);
-  layout->addWidget(debug_gb, 7, 0, 1, 1);
+  layout->addWidget(state_gb, 1, 0, 6, 1);
+  layout->addWidget(navigation_gb, 7, 0, 6, 1);
+  layout->addWidget(mode_gb, 13, 0, 2, 1);
+  layout->addWidget(debug_gb, 15, 0, 1, 1);
   setLayout(layout);
   setStyleSheet(
       "QGroupBox {"
@@ -279,7 +395,7 @@ void FFPanel::create_connections()
   connect(this, SIGNAL(configChanged()), this,
       SLOT(update_robot_name_selector()));
   connect(_robot_name_selector, SIGNAL(currentTextChanged(const QString &)),
-      this, SLOT(update_goals()));
+      this, SLOT(updated_robot_name()));
 
   connect(_clear_goals_button, &QPushButton::clicked, this,
       &FFPanel::clear_goals);
@@ -287,6 +403,8 @@ void FFPanel::create_connections()
       &FFPanel::delete_waypoint);
   connect(_send_goals_button, &QPushButton::clicked, this,
       &FFPanel::send_goals);
+  connect(_send_mode_request_button, &QPushButton::clicked, this,
+      &FFPanel::send_mode_request);
 }
 
 //==============================================================================
@@ -351,6 +469,9 @@ void FFPanel::rviz_nav_goal_callback(
 void FFPanel::update_states(
     const ff_rviz_plugins_msgs::RobotStateArray::ConstPtr& msg)
 {
+  const std::string selected_robot =
+      _robot_name_selector->currentText().toStdString();
+
   std::unique_lock<std::mutex> robots_lock(_robots_mutex);
   bool new_robot_found = false;
   for (const auto& rs : msg->states)
@@ -368,89 +489,20 @@ void FFPanel::update_states(
     {
       _robots[rs.name].state = rs;
     }
+
+    if (robot_name == selected_robot)
+      display_state(rs);
   }
   robots_lock.unlock();
 
+  std::string debug_label_str = new_robot_found ?
+      "New robot found, refreshing..." :
+      "Currently handling " + std::to_string(_robots.size()) + " robots...";
+  _debug_label->setText(QString::fromStdString(debug_label_str));
+
   if (new_robot_found)
-  {
-    std::string debug_label_str = "New robot found, refreshing...";
-    _debug_label->setText(QString::fromStdString(debug_label_str));
     Q_EMIT configChanged();
-  }
-  else
-  {
-    std::string debug_label_str = 
-        "Currently handling " 
-        + std::to_string(_robots.size()) 
-        + " robots...";
-    _debug_label->setText(QString::fromStdString(debug_label_str));
-  }
 }
-
-//==============================================================================
-
-// void FFPanel::update_goal_markers()
-// {
-//   // clear up all the markers first
-//   std::unique_lock<std::mutex> markers_lock(_markers_mutex);
-//   for (auto& m : _marker_array.markers)
-//   {
-//     m.header.stamp = ros::Time::now();
-//     m.action = visualization_msgs::Marker::DELETEALL;
-//   }
-//   _nav_goal_markers_pub.publish(_marker_array);
-
-//   // create and publish an empty marker array first
-//   _marker_array = visualization_msgs::MarkerArray();
-
-//   const std::string selected_robot =
-//       _robot_name_selector->currentText().toStdString();
-
-//   std::unique_lock<std::mutex> nav_goals_lock(_nav_goals_mutex);
-//   const auto it = _nav_goals.find(selected_robot);
-//   if (it == _nav_goals.end() || it->second.empty())
-//     return;
-
-//   // populate with new markers
-//   for (size_t i = 0; i < it->second.size(); ++i)
-//   {
-//     visualization_msgs::Marker arrow_marker;
-//     arrow_marker.header.stamp = ros::Time::now();
-//     arrow_marker.header.frame_id = "map";
-//     arrow_marker.ns = selected_robot + "/arrow";
-//     arrow_marker.id = i;
-//     arrow_marker.type = visualization_msgs::Marker::ARROW;
-//     arrow_marker.action = visualization_msgs::Marker::MODIFY;
-//     arrow_marker.pose = it->second[i].pose;
-//     arrow_marker.scale.x = 0.7;
-//     arrow_marker.scale.y = 0.1;
-//     arrow_marker.scale.z = 0.1;
-//     arrow_marker.color.r = 1.0;
-//     arrow_marker.color.g = 0.0;
-//     arrow_marker.color.b = 0.0;
-//     arrow_marker.color.a = 0.6;
-
-//     visualization_msgs::Marker text_marker;
-//     text_marker.header.stamp = ros::Time::now();
-//     text_marker.header.frame_id = "map";
-//     text_marker.ns = selected_robot + "/text";
-//     text_marker.id = i;
-//     text_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-//     text_marker.action = visualization_msgs::Marker::MODIFY;
-//     text_marker.pose = it->second[i].pose;
-//     text_marker.pose.position.x -= 0.2;
-//     text_marker.scale.z = 0.3;
-//     text_marker.color.r = 1.0;
-//     text_marker.color.g = 0.0;
-//     text_marker.color.b = 0.0;
-//     text_marker.color.a = 1.0;
-//     text_marker.text = std::to_string(i);
-
-//     _marker_array.markers.push_back(arrow_marker);
-//     _marker_array.markers.push_back(text_marker);
-//   }
-//   _nav_goal_markers_pub.publish(_marker_array);
-// }
 
 //==============================================================================
 
@@ -495,6 +547,30 @@ void FFPanel::display_markers()
 
 //==============================================================================
 
+void FFPanel::display_state(const RobotState& state)
+{
+  _state_labels[0]->setText(
+      QString::fromStdString(state.model));
+  _state_labels[1]->setText(
+      QString::fromStdString(state.task_id));
+  _state_labels[2]->setText(
+      robot_mode_qstring(state.mode.mode));
+  _state_labels[3]->setText(
+      QString::fromStdString(std::to_string(state.battery_percent)));
+  _state_labels[4]->setText(
+      QString::fromStdString(std::to_string(state.location.t.sec)));
+  _state_labels[5]->setText(
+      QString::fromStdString(std::to_string(state.location.x)));
+  _state_labels[6]->setText(
+      QString::fromStdString(std::to_string(state.location.y)));
+  _state_labels[7]->setText(
+      QString::fromStdString(std::to_string(state.location.yaw)));
+  _state_labels[8]->setText(
+      QString::fromStdString(state.location.level_name));
+}
+
+//==============================================================================
+
 void FFPanel::clear_markers() const
 {
   _visual_tools->deleteAllMarkers();
@@ -520,6 +596,34 @@ QString FFPanel::marker_to_qstring(const Marker& marker) const
       << to_string_precision(get_yaw_from_quat(marker.pose.orientation), 2);
 
   return QString::fromStdString(ss.str());
+}
+
+//==============================================================================
+
+QString FFPanel::robot_mode_qstring(uint32_t mode) const
+{
+  switch (mode) {
+    case RobotMode::MODE_IDLE:
+      return QString("Idle");
+    case RobotMode::MODE_CHARGING:
+      return QString("Charging");
+    case RobotMode::MODE_MOVING:
+      return QString("Moving");
+    case RobotMode::MODE_PAUSED:
+      return QString("Paused");
+    case RobotMode::MODE_WAITING:
+      return QString("Waiting");
+    case RobotMode::MODE_EMERGENCY:
+      return QString("Emergency");
+    case RobotMode::MODE_GOING_HOME:
+      return QString("Going Home");
+    case RobotMode::MODE_DOCKING:
+      return QString("Docking");
+    case RobotMode::MODE_ADAPTER_ERROR:
+      return QString("Adapter Error");
+    default:
+      return QString("Undefined");
+  }
 }
 
 //==============================================================================

@@ -58,10 +58,9 @@ public:
   using Marker = visualization_msgs::Marker;
   using PoseStamped = geometry_msgs::PoseStamped;
   using MarkerArray = visualization_msgs::MarkerArray;
+  using RobotMode = ff_rviz_plugins_msgs::RobotMode;
   using RobotState = ff_rviz_plugins_msgs::RobotState;
   using RobotStateArray = ff_rviz_plugins_msgs::RobotStateArray;
-
-  FFPanel(QWidget* parent = 0);
 
   struct RobotFields
   {
@@ -69,18 +68,23 @@ public:
     MarkerArray markers;
   };
 
+  FFPanel(QWidget* parent = 0);
+
 public Q_SLOTS:
 
   void update_robot_name_selector();
-  void update_goals();
+  void updated_robot_name();
   void clear_goals();
   void delete_waypoint();
   void send_goals();
+  void send_mode_request();
 
 private:
 
   QGroupBox* create_robot_group_box();
+  QGroupBox* create_state_group_box();
   QGroupBox* create_nav_group_box();
+  QGroupBox* create_mode_group_box();
   QGroupBox* create_debug_group_box();
 
   void create_layout();
@@ -89,6 +93,8 @@ private:
   QLabel* _fleet_name;
   QComboBox* _robot_name_selector;
 
+  std::vector<QLabel*> _state_labels;
+
   QListView* _nav_goal_list_view;
   QStringListModel* _nav_goal_list_model;
   QStringList _nav_goal_str_list;
@@ -96,6 +102,11 @@ private:
   QPushButton* _clear_goals_button;
   QPushButton* _delete_waypoint_button;
   QPushButton* _send_goals_button;
+
+  QRadioButton* _pause_radio_button;
+  QRadioButton* _resume_radio_button;
+
+  QPushButton* _send_mode_request_button;
 
   QLabel* _debug_label;
 
@@ -120,9 +131,13 @@ private:
 
   void display_markers();
 
+  void display_state(const RobotState& state);
+
   void clear_markers() const;
 
   QString marker_to_qstring(const Marker& marker) const;
+
+  QString robot_mode_qstring(uint32_t mode) const;
 };
 
 } // namespace free_fleet
