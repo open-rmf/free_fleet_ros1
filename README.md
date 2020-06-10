@@ -118,8 +118,9 @@ Once the simulation and visualization show up, the robots can then be commanded 
 
 Select the navigation waypoints using the default `rviz` tool `2D Nav Goal`, which will be reflected on the panel, while the various buttons handle clearing, deleting waypoints and issuing commands to the specified robots.
 
+
 <p align="center">
-  ![](media/multi_tb3.gif)
+  <img src="media/multi_tb3.gif">
 </p>
 
 </br>
