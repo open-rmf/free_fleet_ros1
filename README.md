@@ -1,5 +1,4 @@
 ![](https://github.com/osrf/free_fleet/workflows/build/badge.svg?branch=melodic-devel)
-![](https://github.com/osrf/free_fleet/workflows/daily/badge.svg?branch=melodic-devel)
 
 # Free Fleet
 
