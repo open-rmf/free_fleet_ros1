@@ -305,23 +305,34 @@ bool ClientNode::read_mode_request()
 
       paused = true;
       emergency = false;
+
+      WriteLock task_id_lock(task_id_mutex);
+      paused_task_id = current_task_id;
+      current_task_id = mode_request.task_id;
     }
     else if (mode_request.mode.mode == messages::RobotMode::MODE_MOVING)
     {
       ROS_INFO("received an explicit RESUME command.");
       paused = false;
       emergency = false;
+
+      WriteLock task_id_lock(task_id_mutex);
+      if (!paused_task_id.empty())
+        current_task_id = paused_task_id;
+      else
+        current_task_id = mode_request.task_id;
+      paused_task_id = "";
     }
     else if (mode_request.mode.mode == messages::RobotMode::MODE_EMERGENCY)
     {
       ROS_INFO("received an EMERGENCY command.");
       paused = false;
       emergency = true;
+
+      WriteLock task_id_lock(task_id_mutex);
+      current_task_id = mode_request.task_id;
+      paused_task_id = "";
     }
-
-    WriteLock task_id_lock(task_id_mutex);
-    current_task_id = mode_request.task_id;
-
     return true;
   }
   return false;
@@ -390,7 +401,10 @@ bool ClientNode::read_path_request()
     current_task_id = path_request.task_id;
 
     if (paused)
+    {
       paused = false;
+      paused_task_id = "";
+    }
 
     request_error = false;
     return true;
@@ -427,7 +441,10 @@ bool ClientNode::read_destination_request()
     current_task_id = destination_request.task_id;
 
     if (paused)
+    {
       paused = false;
+      paused_task_id = "";
+    }
 
     return true;
   }
@@ -477,6 +494,11 @@ void ClientNode::handle_requests()
       if (ros::Time::now() >= goal_path.front().goal_end_time)
       {
         goal_path.pop_front();
+        if (goal_path.empty())
+        {
+          WriteLock task_id_lock(task_id_mutex);
+          current_task_id = "";
+        }
       }
       else
       {

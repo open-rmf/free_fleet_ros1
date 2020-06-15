@@ -19,11 +19,13 @@
 #define FF_CLIENT__SRC__CLIENTNODE_HPP
 
 #include <deque>
+#include <queue>
 #include <mutex>
 #include <atomic>
 #include <memory>
 #include <thread>
 #include <vector>
+#include <unordered_set>
 
 #include <ros/ros.h>
 #include <std_msgs/String.h>
@@ -120,7 +122,6 @@ private:
 
   bool get_robot_transform();
 
-
   //============================================================================
   // Mode handling
 
@@ -156,8 +157,11 @@ private:
       const messages::Location& location) const;
 
   std::mutex task_id_mutex;
-
   std::string current_task_id;
+  std::string paused_task_id;
+
+  // TODO: Implement caching fixed number of task ids for handling long
+  // periods of operation.
 
   struct Goal
   {
@@ -187,7 +191,6 @@ private:
   void update_thread_fn();
 
   void publish_thread_fn();
-
 
   //============================================================================
 
