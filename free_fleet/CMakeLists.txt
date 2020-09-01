@@ -64,6 +64,8 @@ set(testing_targets
   test_dds_pub_path_request
   test_dds_pub_sim_path_request
   test_dds_sub_state
+  test_pub
+  test_sub
 )
 
 foreach(target ${testing_targets})
