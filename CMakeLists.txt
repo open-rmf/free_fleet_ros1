@@ -65,9 +65,13 @@ foreach(target ${testing_targets})
     src/tests/${target}.cpp
   )
   target_link_libraries(${target}
+    free_fleet::free_fleet  
     ${catkin_LIBRARIES}
   )
   target_include_directories(${target}
+    PUBLIC
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+      $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     PRIVATE
       ${catkin_INCLUDE_DIRS}
   )

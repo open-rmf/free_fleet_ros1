@@ -20,6 +20,8 @@
 
 #include <memory>
 
+#include <ros/ros.h>
+
 #include <rmf_utils/impl_ptr.hpp>
 #include <rmf_traffic/agv/Planner.hpp>
 
@@ -34,19 +36,24 @@ public:
 
   using SharedPtr = std::shared_ptr<NavStackCommandHandle>;
 
-  static SharedPtr make(const std::string& move_base_server_name);
+  static SharedPtr make(
+    std::shared_ptr<ros::NodeHandle> node,
+    const std::string& move_base_server_name,
+    int timeout = 10);
 
   ~NavStackCommandHandle();
 
   void follow_new_path(
-      const std::vector<rmf_traffic::agv::Plan::Waypoint>& waypoints,
-      RequestCompleted path_finished_callback) final;
+    const std::vector<rmf_traffic::agv::Plan::Waypoint>& waypoints,
+    RequestCompleted path_finished_callback) final;
 
   void stop() final;
 
   void resume() final;
 
-  void dock() final;
+  void dock(
+    const std::string& dock_name,
+    RequestCompleted docking_finished_callback) final;
 
   class Implementation;
 private:
