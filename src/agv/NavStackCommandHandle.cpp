@@ -38,15 +38,49 @@ public:
   Implementation()
   {}
 
+  Implementation(const Implementation& other)
+  {
+    std::unique_lock<std::mutex> other_lock(other._mutex);
+
+    _move_base_client = other._move_base_client;
+    _destination = other._destination;
+    _destination_time = other._destination_time;
+    _graph_index = other._graph_index;
+    _destination_reached_callback = other._destination_reached_callback;
+    _docking_finished_callback = other._docking_finished_callback;
+  }
+
+  Implementation& operator=(const Implementation& other)
+  {
+    if (this != &other)
+    {
+      std::unique_lock<std::mutex> my_lock(_mutex, std::defer_lock);
+      std::unique_lock<std::mutex> other_lock(other._mutex, std::defer_lock);
+      std::lock(my_lock, other_lock);
+
+      _move_base_client = other._move_base_client;
+      _destination = other._destination;
+      _destination_time = other._destination_time;
+      _graph_index = other._graph_index;
+      _destination_reached_callback = other._destination_reached_callback;
+      _docking_finished_callback = other._docking_finished_callback;
+    }
+    return *this;
+  }
+
   ~Implementation() = default;
 
   std::thread _thread;
-  std::mutex _mutex;
+  mutable std::mutex _mutex;
 
   std::shared_ptr<MoveBaseClient> _move_base_client;
-  std::vector<rmf_traffic::agv::Plan::Waypoint> _waypoints;
-  RequestCompleted _path_finished_callback;
 
+  Eigen::Vector3d _destination;
+  rmf_traffic::Time _destination_time;
+  rmf_utils::optional<std::size_t> _graph_index;
+
+  RequestCompleted _destination_reached_callback;
+  RequestCompleted _docking_finished_callback;
 };
 
 //==============================================================================
@@ -91,11 +125,11 @@ NavStackCommandHandle::~NavStackCommandHandle()
 
 //==============================================================================
 
-void NavStackCommandHandle::follow_new_path(
-  const std::vector<rmf_traffic::agv::Plan::Waypoint>& waypoints,
-  RequestCompleted path_finished_callback)
+void NavStackCommandHandle::go_to_new_destination(
+  const rmf_traffic::agv::Plan::Waypoint& waypoint,
+  RequestCompleted destination_reached_callback)
 {
-  
+
 }
 
 //==============================================================================

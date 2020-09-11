@@ -43,9 +43,9 @@ public:
 
   ~NavStackCommandHandle();
 
-  void follow_new_path(
-    const std::vector<rmf_traffic::agv::Plan::Waypoint>& waypoints,
-    RequestCompleted path_finished_callback) final;
+  void go_to_new_destination(
+    const rmf_traffic::agv::Plan::Waypoint& waypoint,
+    RequestCompleted destination_reached_callback) final;
 
   void stop() final;
 
