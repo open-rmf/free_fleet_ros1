@@ -33,6 +33,7 @@ catkin_package()
 
 file(GLOB lib_srcs
   "src/agv/*.cpp"
+  "src/ros1/*.cpp"
   "src/*.cpp"
 )
 

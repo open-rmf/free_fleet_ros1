@@ -20,12 +20,11 @@
 
 #include <memory>
 
-#include <ros/ros.h>
-
 #include <rmf_utils/impl_ptr.hpp>
 #include <rmf_traffic/agv/Planner.hpp>
 
 #include <free_fleet/agv/CommandHandle.hpp>
+#include <free_fleet_ros1/ros1/Connections.hpp>
 
 namespace free_fleet {
 namespace agv {
@@ -36,10 +35,7 @@ public:
 
   using SharedPtr = std::shared_ptr<NavStackCommandHandle>;
 
-  static SharedPtr make(
-    std::shared_ptr<ros::NodeHandle> node,
-    const std::string& move_base_server_name,
-    int timeout = 10);
+  static SharedPtr make(ros1::Connections::SharedPtr connections);
 
   ~NavStackCommandHandle();
 
