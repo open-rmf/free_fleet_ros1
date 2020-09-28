@@ -35,7 +35,9 @@ public:
 
   using SharedPtr = std::shared_ptr<NavStackCommandHandle>;
 
-  static SharedPtr make(ros1::Connections::SharedPtr connections);
+  static SharedPtr make(
+    ros1::Connections::SharedPtr connections,
+    const std::string& map_frame);
 
   ~NavStackCommandHandle();
 

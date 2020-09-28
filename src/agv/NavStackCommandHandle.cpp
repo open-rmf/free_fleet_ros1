@@ -44,8 +44,6 @@ public:
     bool sent = false;
   };
 
-  using MoveBaseClient =
-    actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction>;
   using GoalState = actionlib::SimpleClientGoalState;
 
   Implementation()
@@ -65,7 +63,7 @@ public:
 
   void _navigation_thread_fn()
   {
-    while (_node->ok())
+    while (_connections->node()->ok())
     {
       // check goal state
       // pop and send if needed
@@ -106,8 +104,7 @@ public:
   std::thread _thread;
   mutable std::mutex _mutex;
 
-  std::shared_ptr<ros::NodeHandle> _node;
-  std::shared_ptr<MoveBaseClient> _move_base_client;
+  ros1::Connections::SharedPtr _connections;
   std::unique_ptr<ros::Rate> _navigation_handle_rate;
 
   std::string _map_frame;
@@ -120,32 +117,17 @@ public:
 
 //==============================================================================
 NavStackCommandHandle::SharedPtr NavStackCommandHandle::make(
-  std::shared_ptr<ros::NodeHandle> node,
-  const std::string& move_base_server_name,
-  int timeout)
+  ros1::Connections::SharedPtr connections,
+  const std::string& map_frame)
 {
-  if (!node)
+  if (!connections)
     return nullptr;
 
   SharedPtr command_handle(new NavStackCommandHandle());
-
-  ROS_INFO("Waiting for connection with move base action server: %s",
-      move_base_server_name.c_str());
-  std::shared_ptr<Implementation::MoveBaseClient> move_base_client(
-    new Implementation::MoveBaseClient(move_base_server_name, true));
-  if (!move_base_client || !move_base_client->waitForServer(ros::Duration(10)))
-  {
-    ROS_ERROR("Timed out waiting for action server: %s",
-        move_base_server_name.c_str());
-    return nullptr;
-  }
-  ROS_INFO("Connected with move base action server: %s",
-      move_base_server_name.c_str());
-
-  command_handle->_pimpl->_node = std::move(node);
-  command_handle->_pimpl->_move_base_client = std::move(move_base_client);
+  command_handle->_pimpl->_connections = std::move(conenctions);
   command_handle->_pimpl->_navigation_handle_rate.reset(
     new ros::Rate(1));
+  command_handle->_pimpl->_map_frame = map_frame;
   command_handle->_pimpl->_start();
   return command_handle;
 }
@@ -179,7 +161,7 @@ void NavStackCommandHandle::follow_new_path(
     }
   }
 
-  _pimpl->_move_base_client->cancelAllGoals();
+  _pimpl->_connections->move_base_client()->cancelAllGoals();
   std::lock_guard<std::mutex> lock(_pimpl->_mutex);
   if (!_pimpl->_goal_path.empty())
   {
@@ -188,7 +170,7 @@ void NavStackCommandHandle::follow_new_path(
     {
       const Eigen::Vector3d& pos = next_goal.waypoint.position();
       ROS_INFO("sending next goal: %.3f %.3f %.3f", pos[0], pos[1], pos[2]);
-      _pimpl->_move_base_client->sendGoal(next_goal.goal);
+      _pimpl->_connections->move_base_client()->sendGoal(next_goal.goal);
       _pimpl->_goal_path.front().sent = true;
     }
   }
@@ -197,7 +179,7 @@ void NavStackCommandHandle::follow_new_path(
 //==============================================================================
 void NavStackCommandHandle::stop()
 {
-  _pimpl->_move_base_client->cancelAllGoals();
+  _pimpl->_connections->move_base_client()->cancelAllGoals();
   std::lock_guard<std::mutex> lock(_pimpl->_mutex);
   if (!_pimpl->_goal_path.empty())
     _pimpl->_goal_path[0].sent = false;
@@ -214,7 +196,7 @@ void NavStackCommandHandle::resume()
     {
       const Eigen::Vector3d& pos = next_goal.waypoint.position();
       ROS_INFO("sending next goal: %.3f %.3f %.3f", pos[0], pos[1], pos[2]);
-      _pimpl->_move_base_client->sendGoal(next_goal.goal);
+      _pimpl->_connections->move_base_client()->sendGoal(next_goal.goal);
       _pimpl->_goal_path.front().sent = true;
     }
   }

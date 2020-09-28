@@ -121,15 +121,21 @@ Connections::Connections()
 {}
 
 //==============================================================================
-auto Connections::node() const -> std::shared_ptr<ros::NodeHandle>
+auto Connections::node() const -> std::shared_ptr<ros::NodeHandle>&
 {
   return _pimpl->_node;
 }
 
 //==============================================================================
-auto Connections::move_base_client() const -> std::shared_ptr<MoveBaseClient>
+auto Connections::move_base_client() const -> std::shared_ptr<MoveBaseClient>&
 {
   return _pimpl->_move_base_client;
+}
+
+//==============================================================================
+auto Connections::tf2_buffer() const -> std::shared_ptr<tf2_ros::Buffer>&
+{
+  return _pimpl->_tf2_buffer;
 }
 
 //==============================================================================
@@ -137,12 +143,6 @@ auto Connections::battery_state() const -> sensor_msgs::BatteryState
 {
   std::lock_guard<std::mutex> lock(_pimpl->_mutex);
   return _pimpl->_battery_state;
-}
-
-//==============================================================================
-auto Connections::tf2_buffer() const -> std::shared_ptr<tf2_ros::Buffer>
-{
-  return _pimpl->_tf2_buffer;
 }
 
 //==============================================================================

@@ -49,13 +49,13 @@ public:
     const std::string& battery_state_topic,
     int timeout = 10);
 
-  std::shared_ptr<ros::NodeHandle> node() const;
+  std::shared_ptr<ros::NodeHandle>& node() const;
 
-  std::shared_ptr<MoveBaseClient> move_base_client() const;
+  std::shared_ptr<MoveBaseClient>& move_base_client() const;
+
+  std::shared_ptr<tf2_ros::Buffer>& tf2_buffer() const;
 
   sensor_msgs::BatteryState battery_state() const;
-
-  std::shared_ptr<tf2_ros::Buffer> tf2_buffer() const;
 
   class Implementation;
 private:
