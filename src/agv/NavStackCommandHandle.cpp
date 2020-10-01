@@ -29,7 +29,7 @@
 
 #include <free_fleet_ros1/agv/NavStackCommandHandle.hpp>
 
-namespace free_fleet {
+namespace free_fleet_ros1 {
 namespace agv {
 
 //==============================================================================
@@ -274,4 +274,4 @@ void NavStackCommandHandle::dock(const std::string&, RequestCompleted)
 //==============================================================================
 
 } // namespace agv
-} // namespace free_fleet
+} // namespace free_fleet_ros1

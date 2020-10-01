@@ -20,7 +20,7 @@
 
 #include <free_fleet_ros1/ros1/Connections.hpp>
 
-namespace free_fleet {
+namespace free_fleet_ros1 {
 namespace ros1 {
 
 //==============================================================================
@@ -147,4 +147,4 @@ auto Connections::battery_state() const -> sensor_msgs::BatteryState
 
 //==============================================================================
 } // namespace ros1
-} // namespace free_fleet
+} // namespace free_fleet_ros1

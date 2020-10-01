@@ -26,10 +26,10 @@
 #include <free_fleet/agv/CommandHandle.hpp>
 #include <free_fleet_ros1/ros1/Connections.hpp>
 
-namespace free_fleet {
+namespace free_fleet_ros1 {
 namespace agv {
 
-class NavStackCommandHandle : public CommandHandle
+class NavStackCommandHandle : public free_fleet::agv::CommandHandle
 {
 public:
 
@@ -55,11 +55,11 @@ public:
 
   class Implementation;
 private:
-  rmf_utils::impl_ptr<Implementation> _pimpl;
   NavStackCommandHandle();
+  rmf_utils::impl_ptr<Implementation> _pimpl;
 };
 
 } // namespace ros1
-} // namespace free_fleet
+} // namespace free_fleet_ros1
 
 #endif // INCLUDE__FREE_FLEET_ROS1__AGV__NAVSTACKCOMMANDHANDLE_HPP

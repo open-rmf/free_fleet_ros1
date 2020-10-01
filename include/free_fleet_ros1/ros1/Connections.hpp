@@ -31,7 +31,7 @@
 #include <actionlib/client/simple_action_client.h>
 
 
-namespace free_fleet {
+namespace free_fleet_ros1 {
 namespace ros1 {
 
 class Connections
@@ -59,11 +59,11 @@ public:
 
   class Implementation;
 private:
-  rmf_utils::impl_ptr<Implementation> _pimpl;
   Connections();
+  rmf_utils::impl_ptr<Implementation> _pimpl;
 };
 
 } // namespace ros1
-} // namespace free_fleet
+} // namespace free_fleet_ros1
 
 #endif // INCLUDE__FREE_FLEET_ROS1__ROS1__CONNECTIONS_HPP
