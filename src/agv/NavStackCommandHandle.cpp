@@ -227,7 +227,7 @@ void NavStackCommandHandle::follow_new_path(
         _pimpl->_waypoint_to_move_base_goal(waypoints[i]),
         false});
   }
-
+  _pimpl->_path_finished_callback = std::move(path_finished_callback);
   _pimpl->_connections->move_base_client()->cancelAllGoals();
 }
 
