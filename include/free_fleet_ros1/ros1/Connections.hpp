@@ -30,6 +30,7 @@
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
 
+#include <free_fleet/messages/Location.hpp>
 
 namespace free_fleet_ros1 {
 namespace ros1 {
@@ -47,6 +48,7 @@ public:
     const std::string& node_name,
     const std::string& move_base_server_name,
     const std::string& battery_state_topic,
+    const std::string& level_name,
     int timeout = 10);
 
   std::shared_ptr<ros::NodeHandle> node() const;
@@ -56,6 +58,18 @@ public:
   std::shared_ptr<tf2_ros::Buffer> tf2_buffer() const;
 
   sensor_msgs::BatteryState battery_state() const;
+
+  bool stopped() const;
+
+  void stopped(bool new_stopped_state);
+
+  std::string level_name() const;
+
+  void level_name(const std::string& new_level_name);
+
+  std::vector<free_fleet::messages::Location> path() const;
+
+  void path(const std::vector<free_fleet::messages::Location>& new_path);
 
   class Implementation;
 private:

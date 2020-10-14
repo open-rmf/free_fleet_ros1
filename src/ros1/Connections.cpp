@@ -30,9 +30,11 @@ class Connections::Implementation
 public:
 
   Implementation()
+  : _stopped(false)
   {}
 
   Implementation(const Implementation&)
+  : _stopped(false)
   {
     // Empty copy constructor, only needed during construction of impl_ptr
     // All members will be initialized or assigned during runtime.
@@ -73,6 +75,12 @@ public:
   ros::Subscriber _battery_state_sub;
   sensor_msgs::BatteryState _battery_state;
 
+  std::atomic<bool> _stopped;
+
+  std::string _level_name;
+
+  std::vector<free_fleet::messages::Location> _path;
+
   mutable std::mutex _mutex;
   std::thread _spin_thread;
 };
@@ -82,6 +90,7 @@ Connections::SharedPtr Connections::make(
   const std::string& node_name,
   const std::string& move_base_server_name,
   const std::string& battery_state_topic,
+  const std::string& level_name,
   int timeout)
 {
   Connections::SharedPtr connections(new Connections());
@@ -143,6 +152,47 @@ auto Connections::battery_state() const -> sensor_msgs::BatteryState
 {
   std::lock_guard<std::mutex> lock(_pimpl->_mutex);
   return _pimpl->_battery_state;
+}
+
+//==============================================================================
+bool Connections::stopped() const
+{
+  return _pimpl->_stopped;
+}
+
+//==============================================================================
+void Connections::stopped(bool new_stopped_state)
+{
+  _pimpl->_stopped = new_stopped_state;
+}
+
+//==============================================================================
+std::string Connections::level_name() const
+{
+  std::lock_guard<std::mutex> lock(_pimpl->_mutex);
+  return _pimpl->_level_name;
+}
+
+//==============================================================================
+void Connections::level_name(const std::string& new_level_name)
+{
+  std::lock_guard<std::mutex> lock(_pimpl->_mutex);
+  _pimpl->_level_name = new_level_name;
+}
+
+//==============================================================================
+std::vector<free_fleet::messages::Location> Connections::path() const
+{
+  std::lock_guard<std::mutex> lock(_pimpl->_mutex);
+  return _pimpl->_path;  
+}
+
+//==============================================================================
+void Connections::path(
+  const std::vector<free_fleet::messages::Location>& new_path)
+{
+  std::lock_guard<std::mutex> lock(_pimpl->_mutex);
+  _pimpl->_path = new_path;
 }
 
 //==============================================================================

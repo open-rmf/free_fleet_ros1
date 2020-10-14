@@ -32,13 +32,18 @@ public:
 
   using SharedPtr = std::shared_ptr<StatusHandle>;
 
-  static SharedPtr make(ros1::Connections::SharedPtr connections);
+  static SharedPtr make(
+    ros1::Connections::SharedPtr connections,
+    std::string map_frame,
+    std::string robot_frame);
 
   free_fleet::messages::Location location() const final;
 
   free_fleet::messages::RobotMode mode() const final;
 
   double battery_percent() const final;
+
+  std::vector<free_fleet::messages::Location> path() const final;
 
   class Implementation;
 private:

@@ -21,10 +21,12 @@
 #include <memory>
 
 #include <rmf_utils/impl_ptr.hpp>
-#include <rmf_traffic/agv/Planner.hpp>
 
 #include <free_fleet/agv/CommandHandle.hpp>
+#include <free_fleet/messages/Location.hpp>
+
 #include <free_fleet_ros1/ros1/Connections.hpp>
+
 
 namespace free_fleet_ros1 {
 namespace agv {
@@ -42,7 +44,7 @@ public:
   ~NavStackCommandHandle();
 
   void follow_new_path(
-      const std::vector<rmf_traffic::agv::Plan::Waypoint>& waypoints,
+      const std::vector<free_fleet::messages::Location>& waypoints,
       RequestCompleted path_finished_callback) final;
 
   void stop() final;
