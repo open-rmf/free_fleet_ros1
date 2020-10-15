@@ -28,6 +28,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(free_fleet REQUIRED)
+find_package(free_fleet_cyclonedds REQUIRED)
 
 catkin_package()
 
@@ -58,8 +59,31 @@ install(TARGETS free_fleet_ros1
   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
 )
 
+add_executable(client
+  "src/client/main.cpp"
+)
+target_link_libraries(client
+  free_fleet_ros1
+  free_fleet::free_fleet
+  free_fleet_cyclonedds::free_fleet_cyclonedds
+  ${catkin_LIBRARIES}
+)
+target_include_directories(client
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+  PRIVATE
+    ${catkin_INCLUDE_DIRS}
+)
+
+install(
+  TARGETS
+    client
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
 set(testing_targets
-  main
+  fake_action_server
 )
 foreach(target ${testing_targets})
   add_executable(${target}
@@ -82,4 +106,9 @@ install(
   TARGETS
     ${testing_targets}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(
+  DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
 )

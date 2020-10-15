@@ -1,0 +1,18 @@
+<?xml version='1.0' ?>
+<launch>
+
+  <node name="fake_action_server" pkg="free_fleet_ros1"
+    type="fake_action_server"/>
+  
+  <node pkg="tf" type="static_transform_publisher" 
+    name="fake_robot_transform" 
+    args="0.0 0.0 0.0 0.0 0.0 0.0 1.0 base_footprint map 200"/>
+
+  <include file="$(find free_fleet_ros1)/launch/client.launch">
+    <arg name="fleet_name" value="test_fleet"/>
+    <arg name="robot_name" value="test_robot"/>
+    <arg name="robot_model" value="test_model"/>
+    <arg name="level_name" value="test_level"/>
+  </include>
+
+</launch>
