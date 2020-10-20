@@ -14,6 +14,8 @@
   <arg name="battery_state_topic" default="battery_state" doc="Battery state topic."/>
   <arg name="map_frame" default="map" doc="Global map frame that the robot uses."/>
   <arg name="robot_frame" default="base_footprint" doc="Robot base frame that the robot uses for transforms."/>
+
+  <arg name="frequency" default="10" doc="Frequency at which the client operates at."/>
   
   <node name="client_node" pkg="free_fleet_ros1" type="client" output="screen">
     <param name="fleet_name" type="string" value="$(arg fleet_name)"/>
@@ -26,6 +28,7 @@
     <param name="battery_state_topic" type="string" value="$(arg battery_state_topic)"/>
     <param name="map_frame" type="string" value="$(arg map_frame)"/>
     <param name="robot_frame" type="string" value="$(arg robot_frame)"/>
+    <param name="frequency" type="int" value="$(arg frequency)"/>
     <param name="use_sim_time" value="$(arg use_sim_time)"/>
   </node>
 

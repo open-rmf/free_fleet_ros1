@@ -26,20 +26,56 @@
 #include <free_fleet_ros1/agv/StatusHandle.hpp>
 #include <free_fleet_ros1/agv/NavStackCommandHandle.hpp>
 
+template<typename T>
+void get_param(const ros::NodeHandle& node, const std::string& key, T& param)
+{
+  if (node.getParam(key, param))
+  {
+    ROS_INFO("Found %s on the parameter server. Setting %s to %s.",
+        key.c_str(), key.c_str(), (std::to_string(param)).c_str());
+  }
+}
+
+void get_param(
+  const ros::NodeHandle& node,
+  const std::string& key,
+  std::string& param)
+{
+  if (node.getParam(key, param))
+  {
+    ROS_INFO("Found %s on the parameter server. Setting %s to %s.",
+        key.c_str(), key.c_str(), param.c_str());
+  }
+}
+
 int main(int argc, char** argv)
 {
-  std::string robot_name = "test_robot";
-  std::string robot_model = "test_model";
-  std::string fleet_name = "test_fleet";
-  int dds_domain = 24;
-  std::string node_name = "test_client_node";
-  std::string move_base_server_name = "move_base";
-  std::string battery_state_topic = "/battery_state";
+  std::string node_name = "free_fleet_ros1_client_node";
+  ros::init(argc, argv, node_name);
+
+  std::string fleet_name = "fleet_name";
+  std::string robot_name = "robot_name";
+  std::string robot_model = "robot_model";
   std::string level_name = "L1";
+  int dds_domain = 24;
+  std::string move_base_server = "move_base";
+  std::string battery_state_topic = "/battery_state";
   std::string map_frame = "/map";
   std::string robot_frame = "/base_footprint";
+  int frequency = 10;
 
-  ros::init(argc, argv, node_name);
+  ros::NodeHandle node_private_ns("~");
+  get_param(node_private_ns, "fleet_name", fleet_name);
+  get_param(node_private_ns, "robot_name", robot_name);
+  get_param(node_private_ns, "robot_model", robot_model);
+  get_param(node_private_ns, "level_name", level_name);
+  get_param(node_private_ns, "dds_domain", dds_domain);
+  get_param(node_private_ns, "node_name", node_name);
+  get_param(node_private_ns, "move_base_server", move_base_server);
+  get_param(node_private_ns, "battery_state_topic", battery_state_topic);
+  get_param(node_private_ns, "map_frame", map_frame);
+  get_param(node_private_ns, "robot_frame", robot_frame);
+  get_param(node_private_ns, "frequency", frequency);
 
   auto middleware =
     free_fleet::cyclonedds::CycloneDDSMiddleware::make_client(
@@ -47,7 +83,7 @@ int main(int argc, char** argv)
 
   auto connections =
     free_fleet_ros1::ros1::Connections::make(
-      node_name, move_base_server_name, battery_state_topic, level_name);
+      node_name, move_base_server, battery_state_topic, level_name);
   if (!connections)
   {
     ROS_ERROR("Failed to start client.");
@@ -64,6 +100,7 @@ int main(int argc, char** argv)
   auto client =
     free_fleet::agv::Client::make(
       robot_name, robot_model, command_handle, status_handle, middleware);
+  client->start(frequency);
 
   return 0;
 }
