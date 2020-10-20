@@ -174,6 +174,7 @@ StatusHandle::SharedPtr StatusHandle::make(
   status_handle->_pimpl->_update_rate.reset(new ros::Rate(10));
   status_handle->_pimpl->_map_frame = std::move(map_frame);
   status_handle->_pimpl->_robot_frame = std::move(robot_frame);
+  status_handle->_pimpl->_start();
   return status_handle;
 }
 
