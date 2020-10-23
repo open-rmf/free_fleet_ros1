@@ -205,7 +205,7 @@ double StatusHandle::battery_percent() const
 }
 
 //==============================================================================
-std::vector<free_fleet::messages::Location> StatusHandle::path() const
+std::vector<free_fleet::messages::Waypoint> StatusHandle::path() const
 {
   return _pimpl->_connections->path();
 }

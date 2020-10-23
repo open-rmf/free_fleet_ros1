@@ -79,7 +79,7 @@ public:
 
   std::string _level_name;
 
-  std::vector<free_fleet::messages::Location> _path;
+  std::vector<free_fleet::messages::Waypoint> _path;
 
   mutable std::mutex _mutex;
   std::thread _spin_thread;
@@ -181,7 +181,7 @@ void Connections::level_name(const std::string& new_level_name)
 }
 
 //==============================================================================
-std::vector<free_fleet::messages::Location> Connections::path() const
+std::vector<free_fleet::messages::Waypoint> Connections::path() const
 {
   std::lock_guard<std::mutex> lock(_pimpl->_mutex);
   return _pimpl->_path;  
@@ -189,7 +189,7 @@ std::vector<free_fleet::messages::Location> Connections::path() const
 
 //==============================================================================
 void Connections::path(
-  const std::vector<free_fleet::messages::Location>& new_path)
+  const std::vector<free_fleet::messages::Waypoint>& new_path)
 {
   std::lock_guard<std::mutex> lock(_pimpl->_mutex);
   _pimpl->_path = new_path;

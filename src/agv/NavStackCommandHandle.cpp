@@ -41,7 +41,7 @@ public:
 
   struct Goal
   {
-    free_fleet::messages::Location location;
+    free_fleet::messages::Waypoint waypoint;
     move_base_msgs::MoveBaseGoal goal;
     bool sent = false;
   };
@@ -75,7 +75,7 @@ public:
       if (!_goal_path.front().sent)
       {
         const Goal& next_goal = _goal_path.front();
-        const auto& loc = next_goal.location;
+        const auto& loc = next_goal.waypoint.location;
         ROS_INFO("Sending next goal: %.3f %.3f %.3f", loc.x, loc.y, loc.yaw);
 
         _connections->move_base_client()->sendGoal(next_goal.goal);
@@ -112,9 +112,9 @@ public:
         {
           _goal_path.pop_front();
 
-          std::vector<free_fleet::messages::Location> new_path;
+          std::vector<free_fleet::messages::Waypoint> new_path;
           for (const auto& g : _goal_path)
-            new_path.push_back(g.location);
+            new_path.push_back(g.waypoint);
           _connections->path(new_path);
 
           if (_goal_path.empty() && _path_finished_callback)
@@ -211,7 +211,7 @@ NavStackCommandHandle::~NavStackCommandHandle()
 
 //==============================================================================
 void NavStackCommandHandle::follow_new_path(
-    const std::vector<free_fleet::messages::Location>& waypoints,
+    const std::vector<free_fleet::messages::Waypoint>& waypoints,
     RequestCompleted path_finished_callback)
 {
   ROS_INFO("Got a new path goal of length: %lu", waypoints.size());
@@ -223,7 +223,7 @@ void NavStackCommandHandle::follow_new_path(
     _pimpl->_goal_path.push_back(
       Implementation::Goal {
         waypoints[i],
-        _pimpl->_location_to_move_base_goal(waypoints[i]),
+        _pimpl->_location_to_move_base_goal(waypoints[i].location),
         false});
   }
   _pimpl->_path_finished_callback = std::move(path_finished_callback);
@@ -257,7 +257,7 @@ void NavStackCommandHandle::resume()
     const Implementation::Goal& next_goal = _pimpl->_goal_path.front();
     if (!next_goal.sent)
     {
-      const auto& loc = next_goal.location;
+      const auto& loc = next_goal.waypoint.location;
       ROS_INFO("sending next goal: %.3f %.3f %.3f", loc.x, loc.y, loc.yaw);
       _pimpl->_connections->move_base_client()->sendGoal(next_goal.goal);
       _pimpl->_goal_path.front().sent = true;

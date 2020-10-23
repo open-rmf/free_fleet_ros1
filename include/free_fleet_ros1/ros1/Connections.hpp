@@ -30,7 +30,7 @@
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
 
-#include <free_fleet/messages/Location.hpp>
+#include <free_fleet/messages/Waypoint.hpp>
 
 namespace free_fleet_ros1 {
 namespace ros1 {
@@ -67,9 +67,9 @@ public:
 
   void level_name(const std::string& new_level_name);
 
-  std::vector<free_fleet::messages::Location> path() const;
+  std::vector<free_fleet::messages::Waypoint> path() const;
 
-  void path(const std::vector<free_fleet::messages::Location>& new_path);
+  void path(const std::vector<free_fleet::messages::Waypoint>& new_path);
 
   class Implementation;
 private:
