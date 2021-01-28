@@ -23,6 +23,8 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include <geometry_msgs/Quaternion.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
+
 #include <move_base_msgs/MoveBaseGoal.h>
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
@@ -208,6 +210,14 @@ NavStackCommandHandle::NavStackCommandHandle()
 //==============================================================================
 NavStackCommandHandle::~NavStackCommandHandle()
 {}
+
+//==============================================================================
+void NavStackCommandHandle::relocalize(
+  const free_fleet::messages::Location& location,
+  RequestCompleted relocalization_finished_callback)
+{
+
+}
 
 //==============================================================================
 void NavStackCommandHandle::follow_new_path(

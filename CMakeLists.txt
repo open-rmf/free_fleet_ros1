@@ -25,6 +25,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_geometry_msgs
   actionlib
   move_base_msgs
+  geometry_msgs
 )
 
 find_package(free_fleet REQUIRED)
