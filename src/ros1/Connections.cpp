@@ -75,7 +75,10 @@ public:
   std::shared_ptr<tf2_ros::Buffer> _tf2_buffer;
   std::shared_ptr<tf2_ros::TransformListener> _tf2_listener;
 
-  std::shared_ptr<ros::ServiceClient> _relocalization_client;
+  std::shared_ptr<ros::ServiceClient> _set_map_service_client;
+
+  std::unordered_map<std::string, std::shared_ptr<ros::ServiceClient>>
+    _get_map_service_client_map;
 
   ros::Subscriber _battery_state_sub;
   sensor_msgs::BatteryState _battery_state;
@@ -95,7 +98,8 @@ public:
 Connections::SharedPtr Connections::make(
   const std::string& node_name,
   const std::string& move_base_server_name,
-  const std::string& relocalization_server_name,
+  const std::string& set_map_server_name,
+  const MapNameServiceMap& map_services,
   const std::string& battery_state_topic,
   const std::string& level_name,
   int timeout)
@@ -105,10 +109,10 @@ Connections::SharedPtr Connections::make(
   std::shared_ptr<ros::NodeHandle> node(new ros::NodeHandle(node_name));
   std::shared_ptr<MoveBaseClient> move_base_client(
     new MoveBaseClient(move_base_server_name, true));
-  if (!move_base_client ||
+  if (!move_base_client || 
     !move_base_client->waitForServer(ros::Duration(timeout)))
   {
-    ROS_ERROR("Timed out waiting for action server: %s",
+    ROS_ERROR("Timed out waiting for MoveBase action service: %s",
         move_base_server_name.c_str());
     return nullptr;
   }
@@ -117,8 +121,33 @@ Connections::SharedPtr Connections::make(
   std::shared_ptr<tf2_ros::TransformListener> listener(
     new tf2_ros::TransformListener(*buffer));
 
-  auto reloc_server_client =
-    node->serviceClient<
+  auto set_map_service_client =
+    std::make_shared<ros::ServiceClient>(
+      node->serviceClient<nav_msgs::SetMap>(set_map_server_name, true));
+  if (!set_map_service_client ||
+    !set_map_service_client->waitForServer(ros::Duration(timeout)))
+  {
+    ROS_ERROR("Timed out waiting for SetMAp service: %s",
+      set_map_server_name.c_str());
+    return nullptr;
+  }
+
+  std::unordered_map<std::string, std::shared_ptr<ros::ServiceClient>>
+    get_map_service_client_map;
+  for (const auto& m : map_services)
+  {
+    auto get_map_service_client =
+      std::make_shared<ros::ServiceClient>(
+        node->serviceClient<nav_msgs::GetMap>(m.first, true));
+    if (!get_map_service_client ||
+      !get_map_service_client->waitForServer(ros::Duration(timeout)))
+    {
+      ROS_ERROR("Timed out waiting for GetMap service: %s", m.first.c_str());
+      return nullptr;
+    }
+
+    get_map_service_client_map[m.first] = std::move(get_map_service_client);
+  }
 
   if (!node || !buffer || !listener)
   {
@@ -126,16 +155,14 @@ Connections::SharedPtr Connections::make(
     return nullptr;
   }
 
-  auto reloc_pub =
-    std::make_shared<ros::Publisher>(
-      node->advertise<geometry_msgs::PoseWithCovarianceStamped>(
-        relocalize_topic, 10));
-
   connections->_pimpl->_node = std::move(node);
   connections->_pimpl->_move_base_client = std::move(move_base_client);
   connections->_pimpl->_tf2_buffer = std::move(buffer);
   connections->_pimpl->_tf2_listener = std::move(listener);
-  connections->_pimpl->_relocalization_pub = std::move(reloc_pub);
+  connections->_pimpl->_set_map_service_client =
+    std::move(set_map_service_client);
+  connections->_pimpl->_get_map_service_client_map =
+    std::move(get_map_service_client_map);
   connections->_pimpl->start(battery_state_topic);
   return connections;
 }
@@ -164,10 +191,10 @@ auto Connections::tf2_buffer() const -> std::shared_ptr<tf2_ros::Buffer>
 }
 
 //==============================================================================
-auto Connections::relocalization_publisher() const
-  -> std::shared_ptr<ros::Publisher>
+auto Connections::relocalization_service_client() const
+  -> std::shared_ptr<ros::ServiceClient>
 {
-  return _pimpl->_relocalization_pub;
+  return _pimpl->_relocalization_service_client;
 }
 
 //==============================================================================
