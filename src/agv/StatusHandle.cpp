@@ -205,6 +205,11 @@ double StatusHandle::battery_percent() const
 }
 
 //==============================================================================
+std::size_t StatusHandle::target_path_waypoint_index() const
+{
+  
+}
+
 std::vector<free_fleet::messages::Waypoint> StatusHandle::path() const
 {
   return _pimpl->_connections->path();

@@ -18,6 +18,9 @@
 #include <mutex>
 #include <thread>
 
+#include <nav_msgs/GetMap.h>
+#include <nav_msgs/SetMap.h>
+
 #include <free_fleet_ros1/ros1/Connections.hpp>
 
 namespace free_fleet_ros1 {
@@ -71,7 +74,9 @@ public:
 
   std::shared_ptr<tf2_ros::Buffer> _tf2_buffer;
   std::shared_ptr<tf2_ros::TransformListener> _tf2_listener;
-  
+
+  std::shared_ptr<ros::ServiceClient> _relocalization_client;
+
   ros::Subscriber _battery_state_sub;
   sensor_msgs::BatteryState _battery_state;
 
@@ -80,6 +85,7 @@ public:
   std::string _level_name;
 
   std::vector<free_fleet::messages::Waypoint> _path;
+  std::size_t _next_path_index;
 
   mutable std::mutex _mutex;
   std::thread _spin_thread;
@@ -89,6 +95,7 @@ public:
 Connections::SharedPtr Connections::make(
   const std::string& node_name,
   const std::string& move_base_server_name,
+  const std::string& relocalization_server_name,
   const std::string& battery_state_topic,
   const std::string& level_name,
   int timeout)
@@ -110,16 +117,25 @@ Connections::SharedPtr Connections::make(
   std::shared_ptr<tf2_ros::TransformListener> listener(
     new tf2_ros::TransformListener(*buffer));
 
+  auto reloc_server_client =
+    node->serviceClient<
+
   if (!node || !buffer || !listener)
   {
     ROS_ERROR("Unable to initialize ROS 1 connections.");
     return nullptr;
   }
 
+  auto reloc_pub =
+    std::make_shared<ros::Publisher>(
+      node->advertise<geometry_msgs::PoseWithCovarianceStamped>(
+        relocalize_topic, 10));
+
   connections->_pimpl->_node = std::move(node);
   connections->_pimpl->_move_base_client = std::move(move_base_client);
   connections->_pimpl->_tf2_buffer = std::move(buffer);
   connections->_pimpl->_tf2_listener = std::move(listener);
+  connections->_pimpl->_relocalization_pub = std::move(reloc_pub);
   connections->_pimpl->start(battery_state_topic);
   return connections;
 }
@@ -145,6 +161,13 @@ auto Connections::move_base_client() const -> std::shared_ptr<MoveBaseClient>
 auto Connections::tf2_buffer() const -> std::shared_ptr<tf2_ros::Buffer>
 {
   return _pimpl->_tf2_buffer;
+}
+
+//==============================================================================
+auto Connections::relocalization_publisher() const
+  -> std::shared_ptr<ros::Publisher>
+{
+  return _pimpl->_relocalization_pub;
 }
 
 //==============================================================================
@@ -193,6 +216,26 @@ void Connections::path(
 {
   std::lock_guard<std::mutex> lock(_pimpl->_mutex);
   _pimpl->_path = new_path;
+  _pimpl->_next_path_index = 0;
+}
+
+//==============================================================================
+std::size_t Connections::next_path_index() const
+{
+  std::lock_guard<std::mutex> lock(_pimpl->_mutex);
+  return _pimpl->_next_path_index;
+}
+
+//==============================================================================
+void Connections::next_path_index(std::size_t index)
+{
+  std::lock_guard<std::mutex> lock(_pimpl->_mutex);
+  if (index >= _pimpl->_path.size())
+  {
+    ROS_ERROR("Next path index is out of range of the path.");
+    return;
+  }
+  _pimpl->_next_path_index = index;
 }
 
 //==============================================================================

@@ -18,14 +18,15 @@ endif()
 include(GNUInstallDirs)
 
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  sensor_msgs
   tf2
+  roscpp
   tf2_ros
-  tf2_geometry_msgs
+  nav_msgs
   actionlib
-  move_base_msgs
+  sensor_msgs
   geometry_msgs
+  move_base_msgs
+  tf2_geometry_msgs
 )
 
 find_package(free_fleet REQUIRED)
@@ -34,9 +35,9 @@ find_package(free_fleet_cyclonedds REQUIRED)
 catkin_package()
 
 file(GLOB lib_srcs
+  "src/*.cpp"
   "src/agv/*.cpp"
   "src/ros1/*.cpp"
-  "src/*.cpp"
 )
 
 add_library(free_fleet_ros1 SHARED

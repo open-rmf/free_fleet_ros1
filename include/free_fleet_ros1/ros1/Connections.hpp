@@ -19,6 +19,7 @@
 #define INCLUDE__FREE_FLEET_ROS1__ROS1__CONNECTIONS_HPP
 
 #include <memory>
+#include <unordered_map>
 
 #include <rmf_utils/impl_ptr.hpp>
 
@@ -30,6 +31,7 @@
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
 
+#include <free_fleet/messages/Location.hpp>
 #include <free_fleet/messages/Waypoint.hpp>
 
 namespace free_fleet_ros1 {
@@ -44,9 +46,13 @@ public:
   using MoveBaseClient =
     actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction>;
 
+  using MapNameServiceMap = std::unordered_map<std::string, std::string>;
+
   static SharedPtr make(
     const std::string& node_name,
     const std::string& move_base_server_name,
+    const std::string& relocalization_server_name,
+    const MapNameServiceMap& map_services,
     const std::string& battery_state_topic,
     const std::string& level_name,
     int timeout = 10);
@@ -56,6 +62,8 @@ public:
   std::shared_ptr<MoveBaseClient> move_base_client() const;
 
   std::shared_ptr<tf2_ros::Buffer> tf2_buffer() const;
+
+  std::shared_ptr<ros::ServiceClient> _relocalization_service_client() const;
 
   sensor_msgs::BatteryState battery_state() const;
 
@@ -70,6 +78,10 @@ public:
   std::vector<free_fleet::messages::Waypoint> path() const;
 
   void path(const std::vector<free_fleet::messages::Waypoint>& new_path);
+
+  std::size_t next_path_index() const;
+
+  void next_path_index(std::size_t index);
 
   class Implementation;
 private:

@@ -114,10 +114,8 @@ public:
         {
           _goal_path.pop_front();
 
-          std::vector<free_fleet::messages::Waypoint> new_path;
-          for (const auto& g : _goal_path)
-            new_path.push_back(g.waypoint);
-          _connections->path(new_path);
+          std::size_t next_path_index = _connections->next_path_index() + 1;
+          _connections->next_path_index(next_path_index);
 
           if (_goal_path.empty() && _path_finished_callback)
             _path_finished_callback();
@@ -159,15 +157,38 @@ public:
   move_base_msgs::MoveBaseGoal _location_to_move_base_goal(
     const free_fleet::messages::Location& location) const
   {
+    // TODO(AA): handle Z height with level
     move_base_msgs::MoveBaseGoal goal;
     goal.target_pose.header.frame_id = _map_frame;
     goal.target_pose.header.stamp.sec = location.sec;
     goal.target_pose.header.stamp.nsec = location.nanosec;
     goal.target_pose.pose.position.x = location.x;
     goal.target_pose.pose.position.y = location.y;
-    goal.target_pose.pose.position.z = 0.0; // TODO: handle Z height with level
+    goal.target_pose.pose.position.z = 0.0;
     goal.target_pose.pose.orientation = _get_quat_from_yaw(location.yaw);
     return goal;
+  }
+
+  geometry_msgs::PoseWithCovarianceStamped _location_to_pose_with_cov(
+    const free_fleet::messages::Location& location) const
+  {
+    // TODO(AA): handle Z height with level
+    geometry_msgs::PoseWithCovarianceStamped msg;
+    msg.header.frame_id = _map_frame;
+    msg.header.stamp.sec = location.sec;
+    msg.header.stamp.nsec = location.nanosec;
+    msg.pose.pose.position.x = location.x;
+    msg.pose.pose.position.y = location.y;
+    msg.pose.pose.position.z = 0.0;
+    msg.pose.pose.orientation = _get_quat_from_yaw(location.yaw);
+    msg.pose.covariance = {
+      0.25, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.25, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.06853892326654787};
+    return msg;
   }
 
   std::thread _thread;
@@ -216,7 +237,23 @@ void NavStackCommandHandle::relocalize(
   const free_fleet::messages::Location& location,
   RequestCompleted relocalization_finished_callback)
 {
+  if (location.level_name != _pimpl->_map_frame)
+  {
+    ROS_WARN("Received relocalization request to an unsupported level: %s",
+      location.level_name.c_str());
+    return;
+  }
 
+  ROS_INFO("Relocalizing to: %.3f, %.3f, Yaw: %.3f",
+    location.x, location.y, location.yaw);
+  
+  std::lock_guard<std::mutex> lock(_pimpl->_mutex);
+  _pimpl->_goal_path.clear();
+  _pimpl->_connections->move_base_client()->cancelAllGoals();
+  _pimpl->_connections->path({});
+
+  _pimpl->_connections->relocalization_publisher->publish(
+    _pimpl->_location_to_pose_with_cov(location));
 }
 
 //==============================================================================

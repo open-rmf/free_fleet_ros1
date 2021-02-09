@@ -59,6 +59,7 @@ int main(int argc, char** argv)
   std::string level_name = "L1";
   int dds_domain = 24;
   std::string move_base_server = "move_base";
+  std::string relocalization_topic = "/initialpose";
   std::string battery_state_topic = "/battery_state";
   std::string map_frame = "/map";
   std::string robot_frame = "/base_footprint";
@@ -72,6 +73,7 @@ int main(int argc, char** argv)
   get_param(node_private_ns, "dds_domain", dds_domain);
   get_param(node_private_ns, "node_name", node_name);
   get_param(node_private_ns, "move_base_server", move_base_server);
+  get_param(node_private_ns, "relocalization_topic", relocalization_topic);
   get_param(node_private_ns, "battery_state_topic", battery_state_topic);
   get_param(node_private_ns, "map_frame", map_frame);
   get_param(node_private_ns, "robot_frame", robot_frame);
@@ -83,7 +85,11 @@ int main(int argc, char** argv)
 
   auto connections =
     free_fleet_ros1::ros1::Connections::make(
-      node_name, move_base_server, battery_state_topic, level_name);
+      node_name,
+      move_base_server,
+      relocatlization_topic,
+      battery_state_topic,
+      level_name);
   if (!connections)
   {
     ROS_ERROR("Failed to start client.");
@@ -99,7 +105,11 @@ int main(int argc, char** argv)
 
   auto client =
     free_fleet::agv::Client::make(
-      robot_name, robot_model, command_handle, status_handle, middleware);
+      robot_name,
+      robot_model,
+      command_handle,
+      status_handle,
+      middleware);
   client->start(frequency);
 
   return 0;
