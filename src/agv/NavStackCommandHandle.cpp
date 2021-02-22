@@ -19,6 +19,10 @@
 #include <thread>
 #include <deque>
 
+#include <std_srvs/Empty.h>
+#include <nav_msgs/GetMap.h>
+#include <nav_msgs/SetMap.h>
+
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
@@ -237,23 +241,47 @@ void NavStackCommandHandle::relocalize(
   const free_fleet::messages::Location& location,
   RequestCompleted relocalization_finished_callback)
 {
-  if (location.level_name != _pimpl->_map_frame)
+  auto get_map_client =
+    _pimpl->_connections->get_map_client(location.level_name);
+  if (!get_map_client)
   {
-    ROS_WARN("Received relocalization request to an unsupported level: %s",
+    ROS_WARN("Received relocalization request to an unsupported level/map: %s",
       location.level_name.c_str());
     return;
   }
 
-  ROS_INFO("Relocalizing to: %.3f, %.3f, Yaw: %.3f",
-    location.x, location.y, location.yaw);
-  
   std::lock_guard<std::mutex> lock(_pimpl->_mutex);
   _pimpl->_goal_path.clear();
   _pimpl->_connections->move_base_client()->cancelAllGoals();
   _pimpl->_connections->path({});
 
-  _pimpl->_connections->relocalization_publisher->publish(
-    _pimpl->_location_to_pose_with_cov(location));
+  nav_msgs::GetMap::Request get_req;
+  nav_msgs::GetMap::Response get_resp;
+  if (!get_map_client->call(get_req, get_resp))
+  {
+    ROS_WARN(
+      "Unable to get map [%s] from service: [%s]",
+      location.level_name.c_str(),
+      get_map_client->getService().c_str());
+    return;
+  }
+
+  nav_msgs::SetMap::Request set_req;
+  set_req.map = get_resp.map;
+  set_req.initial_pose = _pimpl->_location_to_pose_with_cov(location);
+  nav_msgs::SetMap::Response set_resp;
+  
+  auto set_map_client = _pimpl->_connections->set_map_service_client();
+  if (!set_map_client->call(set_req, set_resp) || !set_resp.success)
+  {
+    ROS_WARN(
+      "Unable to set map and location to service: [%s]",
+      set_map_client->getService().c_str());
+    return;
+  }
+
+  ROS_INFO("Relocalized to: %.3f, %.3f, Yaw: %.3f, Level/Map: %s",
+    location.x, location.y, location.yaw, location.level_name.c_str());
 }
 
 //==============================================================================

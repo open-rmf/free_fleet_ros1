@@ -91,7 +91,7 @@ public:
   /// Gets the GetMap client corresponding to the map name. Returns a nullptr if
   /// there does not exist a client for that map.
   std::shared_ptr<ros::ServiceClient> get_map_client(
-    const std::string& map_name);
+    const std::string& map_name) const;
 
   /// Checks if the robot has stopped.
   bool stopped() const;

@@ -125,7 +125,7 @@ Connections::SharedPtr Connections::make(
     std::make_shared<ros::ServiceClient>(
       node->serviceClient<nav_msgs::SetMap>(set_map_server_name, true));
   if (!set_map_service_client ||
-    !set_map_service_client->waitForServer(ros::Duration(timeout)))
+    !set_map_service_client->waitForExistence(ros::Duration(timeout)))
   {
     ROS_ERROR("Timed out waiting for SetMAp service: %s",
       set_map_server_name.c_str());
@@ -140,7 +140,7 @@ Connections::SharedPtr Connections::make(
       std::make_shared<ros::ServiceClient>(
         node->serviceClient<nav_msgs::GetMap>(m.first, true));
     if (!get_map_service_client ||
-      !get_map_service_client->waitForServer(ros::Duration(timeout)))
+      !get_map_service_client->waitForExistence(ros::Duration(timeout)))
     {
       ROS_ERROR("Timed out waiting for GetMap service: %s", m.first.c_str());
       return nullptr;
@@ -191,10 +191,10 @@ auto Connections::tf2_buffer() const -> std::shared_ptr<tf2_ros::Buffer>
 }
 
 //==============================================================================
-auto Connections::relocalization_service_client() const
+auto Connections::set_map_service_client() const
   -> std::shared_ptr<ros::ServiceClient>
 {
-  return _pimpl->_relocalization_service_client;
+  return _pimpl->_set_map_service_client;
 }
 
 //==============================================================================
@@ -202,6 +202,28 @@ auto Connections::battery_state() const -> sensor_msgs::BatteryState
 {
   std::lock_guard<std::mutex> lock(_pimpl->_mutex);
   return _pimpl->_battery_state;
+}
+
+//==============================================================================
+auto Connections::maps() const -> std::vector<std::string>
+{
+  std::vector<std::string> maps;
+  for (const auto it : _pimpl->_get_map_service_client_map)
+  {
+    maps.push_back(it.first);
+  }
+  return maps;
+}
+
+//==============================================================================
+auto Connections::get_map_client(const std::string& map_name) const
+  -> std::shared_ptr<ros::ServiceClient>
+{
+  auto it = _pimpl->_get_map_service_client_map.find(map_name);
+  if (it == _pimpl->_get_map_service_client_map.end())
+    return nullptr;
+
+  return it->second;
 }
 
 //==============================================================================

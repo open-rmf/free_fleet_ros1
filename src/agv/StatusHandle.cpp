@@ -207,12 +207,8 @@ double StatusHandle::battery_percent() const
 //==============================================================================
 std::size_t StatusHandle::target_path_waypoint_index() const
 {
-  
-}
-
-std::vector<free_fleet::messages::Waypoint> StatusHandle::path() const
-{
-  return _pimpl->_connections->path();
+  std::lock_guard<std::mutex> lock(_pimpl->_mutex);
+  return _pimpl->_connections->next_path_index();
 }
 
 //==============================================================================
