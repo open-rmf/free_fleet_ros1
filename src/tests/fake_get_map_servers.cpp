@@ -26,9 +26,9 @@ bool get_map_call(
   return true;
 }
 
-int main(int argc, char** argc)
+int main(int argc, char** argv)
 {
-  ros::init(argc, argc, "fake_get_map_servers");
+  ros::init(argc, argv, "fake_get_map_servers");
   ros::NodeHandle n;
 
   auto service_0 = n.advertiseService("fake_get_map_server_0", get_map_call);

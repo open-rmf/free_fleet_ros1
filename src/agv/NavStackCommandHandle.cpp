@@ -292,7 +292,19 @@ void NavStackCommandHandle::follow_new_path(
 {
   ROS_INFO("Got a new path goal of length: %lu", waypoints.size());
 
-  // TODO(AA): Check that all waypoints are in the current map/level
+  auto current_map_name = _pimpl->_connections->map_name();
+  for (const auto& wp : waypoints)
+  {
+    if (wp.location.level_name != current_map_name)
+    {
+      ROS_WARN(
+        "Received a waypoint in path for map [%s] while current map is [%s], "
+        "ignoring.",
+        wp.location.level_name.c_str(),
+        current_map_name.c_str());
+      return;
+    }
+  }
   
   std::lock_guard<std::mutex> lock(_pimpl->_mutex);
   _pimpl->_goal_path.clear();

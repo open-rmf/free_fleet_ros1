@@ -138,11 +138,11 @@ Connections::SharedPtr Connections::make(
   {
     auto get_map_service_client =
       std::make_shared<ros::ServiceClient>(
-        node->serviceClient<nav_msgs::GetMap>(m.first, true));
+        node->serviceClient<nav_msgs::GetMap>(m.second, true));
     if (!get_map_service_client ||
       !get_map_service_client->waitForExistence(ros::Duration(timeout)))
     {
-      ROS_ERROR("Timed out waiting for GetMap service: %s", m.first.c_str());
+      ROS_ERROR("Timed out waiting for GetMap service: %s", m.second.c_str());
       return nullptr;
     }
 

@@ -78,8 +78,8 @@ int main(int argc, char** argv)
   std::string set_map_server = "set_map";
   std::map<std::string, std::string> get_map_servers;
   std::string battery_state_topic = "/battery_state";
-  std::string map_frame = "/map";
-  std::string robot_frame = "/base_footprint";
+  std::string map_frame = "map";
+  std::string robot_frame = "base_footprint";
   int frequency = 10;
 
   ros::NodeHandle node_private_ns("~");
