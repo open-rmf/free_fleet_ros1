@@ -11,7 +11,9 @@
   <arg name="dds_domain" default="42" doc="DDS domain ID for the CycloneDDS middleware."/>
   <arg name="node_name" default="$(arg robot_name)_client_node" doc="Node name of the client."/>
   <arg name="move_base_server" default="move_base" doc="Name of move_base server."/>
-  <arg name="relocalization_topic" default="initial_pose" doc="Robot relocalization topic."/>
+  <arg name="set_map_server" default="set_map" doc="Name of the map setting server."/>
+  <arg name="get_map_servers" default="" doc="map_name: get_map_server_name"/>
+
   <arg name="battery_state_topic" default="battery_state" doc="Battery state topic."/>
   <arg name="map_frame" default="map" doc="Global map frame that the robot uses."/>
   <arg name="robot_frame" default="base_footprint" doc="Robot base frame that the robot uses for transforms."/>
@@ -26,7 +28,7 @@
     <param name="dds_domain" type="int" value="$(arg dds_domain)"/>
     <param name="node_name" type="string" value="$(arg node_name)"/>
     <param name="move_base_server" type="string" value="$(arg move_base_server)"/>
-    <param name="relocalization_topic" type="string" value="$(arg relocalization_topic"/>
+    <param name="set_map_server" type="string" value="$(arg set_map_server)"/>
     <param name="battery_state_topic" type="string" value="$(arg battery_state_topic)"/>
     <param name="map_frame" type="string" value="$(arg map_frame)"/>
     <param name="robot_frame" type="string" value="$(arg robot_frame)"/>

@@ -280,6 +280,7 @@ void NavStackCommandHandle::relocalize(
     return;
   }
 
+  _pimpl->_connections->map_name(location.level_name);
   ROS_INFO("Relocalized to: %.3f, %.3f, Yaw: %.3f, Level/Map: %s",
     location.x, location.y, location.yaw, location.level_name.c_str());
 }
@@ -290,6 +291,8 @@ void NavStackCommandHandle::follow_new_path(
     RequestCompleted path_finished_callback)
 {
   ROS_INFO("Got a new path goal of length: %lu", waypoints.size());
+
+  // TODO(AA): Check that all waypoints are in the current map/level
   
   std::lock_guard<std::mutex> lock(_pimpl->_mutex);
   _pimpl->_goal_path.clear();

@@ -125,7 +125,7 @@ public:
       _location.x = _current_transform.transform.translation.x;
       _location.y = _current_transform.transform.translation.y;
       _location.yaw = quat_to_yaw(_current_transform.transform.rotation);
-      _location.level_name = _connections->level_name();
+      _location.level_name = _connections->map_name();
 
       _mode.mode = robot_mode.mode;
 

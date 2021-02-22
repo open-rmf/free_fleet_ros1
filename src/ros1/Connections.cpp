@@ -85,7 +85,7 @@ public:
 
   std::atomic<bool> _stopped;
 
-  std::string _level_name;
+  std::string _map_name;
 
   std::vector<free_fleet::messages::Waypoint> _path;
   std::size_t _next_path_index;
@@ -101,7 +101,7 @@ Connections::SharedPtr Connections::make(
   const std::string& set_map_server_name,
   const MapNameServiceMap& map_services,
   const std::string& battery_state_topic,
-  const std::string& level_name,
+  const std::string& initial_map_name,
   int timeout)
 {
   Connections::SharedPtr connections(new Connections());
@@ -149,6 +149,15 @@ Connections::SharedPtr Connections::make(
     get_map_service_client_map[m.first] = std::move(get_map_service_client);
   }
 
+  auto it = get_map_service_client_map.find(initial_map_name);
+  if (it == get_map_service_client_map.end())
+  {
+    ROS_ERROR(
+      "Map service for initial map [%s] not provided.",
+      initial_map_name.c_str());
+    return nullptr;
+  }
+
   if (!node || !buffer || !listener)
   {
     ROS_ERROR("Unable to initialize ROS 1 connections.");
@@ -163,6 +172,7 @@ Connections::SharedPtr Connections::make(
     std::move(set_map_service_client);
   connections->_pimpl->_get_map_service_client_map =
     std::move(get_map_service_client_map);
+  connections->_pimpl->_map_name = std::move(initial_map_name);
   connections->_pimpl->start(battery_state_topic);
   return connections;
 }
@@ -239,17 +249,17 @@ void Connections::stopped(bool new_stopped_state)
 }
 
 //==============================================================================
-std::string Connections::level_name() const
+std::string Connections::map_name() const
 {
   std::lock_guard<std::mutex> lock(_pimpl->_mutex);
-  return _pimpl->_level_name;
+  return _pimpl->_map_name;
 }
 
 //==============================================================================
-void Connections::level_name(const std::string& new_level_name)
+void Connections::map_name(const std::string& new_map_name)
 {
   std::lock_guard<std::mutex> lock(_pimpl->_mutex);
-  _pimpl->_level_name = new_level_name;
+  _pimpl->_map_name = new_map_name;
 }
 
 //==============================================================================

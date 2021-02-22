@@ -1,18 +1,40 @@
 <?xml version='1.0' ?>
 <launch>
 
-  <node name="fake_action_server" pkg="free_fleet_ros1"
+  <node
+    name="fake_action_server"
+    pkg="free_fleet_ros1"
     type="fake_action_server"/>
   
-  <node pkg="tf" type="static_transform_publisher" 
+  <node
+    name="fake_set_map_server"
+    pkg="free_fleet_ros1"
+    type="fake_set_map_server"/>
+
+  <node
+    name="fake_get_map_servers"
+    pkg="free_fleet_ros1"
+    type="fake_get_map_servers"/>
+  
+  <node
+    pkg="tf"
+    type="static_transform_publisher" 
     name="fake_robot_transform" 
     args="0.0 0.0 0.0 0.0 0.0 0.0 1.0 base_footprint map 200"/>
 
-  <include file="$(find free_fleet_ros1)/launch/client.launch">
-    <arg name="fleet_name" value="test_fleet"/>
-    <arg name="robot_name" value="test_robot"/>
-    <arg name="robot_model" value="test_model"/>
-    <arg name="level_name" value="test_level"/>
-  </include>
+  <node name="client_node" pkg="free_fleet_ros1" type="client" output="screen">
+    <param name="fleet_name" type="string" value="test_fleet"/>
+    <param name="robot_name" type="string" value="test_robot"/>
+    <param name="robot_model" type="string" value="test_model"/>
+    <param name="level_name" type="string" value="map_0"/>
+
+    <param name="move_base_server" type="string" value="fake_move_base_server"/>
+    <param name="set_map_server" type="string" value="fake_set_map_server"/>
+    <param name="get_map_servers">
+      map_0: fake_get_map_server_0
+      map_1: fake_get_map_server_1
+      map_2: fake_get_map_server_2
+    </param>
+  </node>
 
 </launch>

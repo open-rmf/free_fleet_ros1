@@ -86,6 +86,7 @@ install(
 
 set(testing_targets
   fake_action_server
+  fake_set_map_server
 )
 foreach(target ${testing_targets})
   add_executable(${target}

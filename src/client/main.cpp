@@ -72,7 +72,7 @@ int main(int argc, char** argv)
   std::string fleet_name = "fleet_name";
   std::string robot_name = "robot_name";
   std::string robot_model = "robot_model";
-  std::string level_name = "L1";
+  std::string initial_map_name = "L1";
   int dds_domain = 24;
   std::string move_base_server = "move_base";
   std::string set_map_server = "set_map";
@@ -86,12 +86,12 @@ int main(int argc, char** argv)
   get_param(node_private_ns, "fleet_name", fleet_name);
   get_param(node_private_ns, "robot_name", robot_name);
   get_param(node_private_ns, "robot_model", robot_model);
-  get_param(node_private_ns, "level_name", level_name);
+  get_param(node_private_ns, "initial_map_name", initial_map_name);
   get_param(node_private_ns, "dds_domain", dds_domain);
   get_param(node_private_ns, "node_name", node_name);
   get_param(node_private_ns, "move_base_server", move_base_server);
   get_param(node_private_ns, "set_map_server", set_map_server);
-  get_param(node_private_ns, "map_names", get_map_servers);
+  get_param(node_private_ns, "get_map_servers", get_map_servers);
   get_param(node_private_ns, "battery_state_topic", battery_state_topic);
   get_param(node_private_ns, "map_frame", map_frame);
   get_param(node_private_ns, "robot_frame", robot_frame);
@@ -114,7 +114,7 @@ int main(int argc, char** argv)
       set_map_server,
       get_map_server_map,
       battery_state_topic,
-      level_name);
+      initial_map_name);
   if (!connections)
   {
     ROS_ERROR("Failed to start client.");

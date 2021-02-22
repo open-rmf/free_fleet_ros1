@@ -58,7 +58,7 @@ public:
   /// \param[in] set_map_server_name
   /// \param[in] map_services
   /// \param[in] battery_state_topic
-  /// \param[in] level_name
+  /// \param[in] initial_map_name
   /// \param[in] timeout
   /// \return
   static SharedPtr make(
@@ -67,7 +67,7 @@ public:
     const std::string& set_map_server_name,
     const MapNameServiceMap& map_services,
     const std::string& battery_state_topic,
-    const std::string& level_name,
+    const std::string& initial_map_name,
     int timeout = 10);
 
   /// Gets a shared pointer to the ROS node.
@@ -99,11 +99,11 @@ public:
   /// Modify the robots stopped state.
   void stopped(bool new_stopped_state);
 
-  /// Current level name.
-  std::string level_name() const;
+  /// Current map name.
+  std::string map_name() const;
 
-  /// Sets the current level name.
-  void level_name(const std::string& new_level_name);
+  /// Sets the current map name.
+  void map_name(const std::string& new_map_name);
 
   /// Current path that the robot is on.
   std::vector<free_fleet::messages::Waypoint> path() const;
