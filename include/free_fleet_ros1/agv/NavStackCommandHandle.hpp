@@ -23,7 +23,7 @@
 #include <rmf_utils/impl_ptr.hpp>
 
 #include <free_fleet/agv/CommandHandle.hpp>
-#include <free_fleet/messages/Location.hpp>
+#include <free_fleet/messages/Waypoint.hpp>
 
 #include <free_fleet_ros1/ros1/Connections.hpp>
 
@@ -43,8 +43,12 @@ public:
 
   ~NavStackCommandHandle();
 
+  void relocalize(
+    const free_fleet::messages::Location& location,
+    RequestCompleted relocalization_finished_callback) final;
+
   void follow_new_path(
-      const std::vector<free_fleet::messages::Location>& waypoints,
+      const std::vector<free_fleet::messages::Waypoint>& waypoints,
       RequestCompleted path_finished_callback) final;
 
   void stop() final;

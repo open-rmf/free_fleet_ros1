@@ -19,10 +19,16 @@
 #include <thread>
 #include <deque>
 
+#include <std_srvs/Empty.h>
+#include <nav_msgs/GetMap.h>
+#include <nav_msgs/SetMap.h>
+
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include <geometry_msgs/Quaternion.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
+
 #include <move_base_msgs/MoveBaseGoal.h>
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
@@ -41,7 +47,7 @@ public:
 
   struct Goal
   {
-    free_fleet::messages::Location location;
+    free_fleet::messages::Waypoint waypoint;
     move_base_msgs::MoveBaseGoal goal;
     bool sent = false;
   };
@@ -75,7 +81,7 @@ public:
       if (!_goal_path.front().sent)
       {
         const Goal& next_goal = _goal_path.front();
-        const auto& loc = next_goal.location;
+        const auto& loc = next_goal.waypoint.location;
         ROS_INFO("Sending next goal: %.3f %.3f %.3f", loc.x, loc.y, loc.yaw);
 
         _connections->move_base_client()->sendGoal(next_goal.goal);
@@ -112,10 +118,8 @@ public:
         {
           _goal_path.pop_front();
 
-          std::vector<free_fleet::messages::Location> new_path;
-          for (const auto& g : _goal_path)
-            new_path.push_back(g.location);
-          _connections->path(new_path);
+          std::size_t next_path_index = _connections->next_path_index() + 1;
+          _connections->next_path_index(next_path_index);
 
           if (_goal_path.empty() && _path_finished_callback)
             _path_finished_callback();
@@ -157,15 +161,38 @@ public:
   move_base_msgs::MoveBaseGoal _location_to_move_base_goal(
     const free_fleet::messages::Location& location) const
   {
+    // TODO(AA): handle Z height with level
     move_base_msgs::MoveBaseGoal goal;
     goal.target_pose.header.frame_id = _map_frame;
     goal.target_pose.header.stamp.sec = location.sec;
     goal.target_pose.header.stamp.nsec = location.nanosec;
     goal.target_pose.pose.position.x = location.x;
     goal.target_pose.pose.position.y = location.y;
-    goal.target_pose.pose.position.z = 0.0; // TODO: handle Z height with level
+    goal.target_pose.pose.position.z = 0.0;
     goal.target_pose.pose.orientation = _get_quat_from_yaw(location.yaw);
     return goal;
+  }
+
+  geometry_msgs::PoseWithCovarianceStamped _location_to_pose_with_cov(
+    const free_fleet::messages::Location& location) const
+  {
+    // TODO(AA): handle Z height with level
+    geometry_msgs::PoseWithCovarianceStamped msg;
+    msg.header.frame_id = _map_frame;
+    msg.header.stamp.sec = location.sec;
+    msg.header.stamp.nsec = location.nanosec;
+    msg.pose.pose.position.x = location.x;
+    msg.pose.pose.position.y = location.y;
+    msg.pose.pose.position.z = 0.0;
+    msg.pose.pose.orientation = _get_quat_from_yaw(location.yaw);
+    msg.pose.covariance = {
+      0.25, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.25, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.06853892326654787};
+    return msg;
   }
 
   std::thread _thread;
@@ -210,11 +237,74 @@ NavStackCommandHandle::~NavStackCommandHandle()
 {}
 
 //==============================================================================
+void NavStackCommandHandle::relocalize(
+  const free_fleet::messages::Location& location,
+  RequestCompleted relocalization_finished_callback)
+{
+  auto get_map_client =
+    _pimpl->_connections->get_map_client(location.level_name);
+  if (!get_map_client)
+  {
+    ROS_WARN("Received relocalization request to an unsupported level/map: %s",
+      location.level_name.c_str());
+    return;
+  }
+
+  std::lock_guard<std::mutex> lock(_pimpl->_mutex);
+  _pimpl->_goal_path.clear();
+  _pimpl->_connections->move_base_client()->cancelAllGoals();
+  _pimpl->_connections->path({});
+
+  nav_msgs::GetMap::Request get_req;
+  nav_msgs::GetMap::Response get_resp;
+  if (!get_map_client->call(get_req, get_resp))
+  {
+    ROS_WARN(
+      "Unable to get map [%s] from service: [%s]",
+      location.level_name.c_str(),
+      get_map_client->getService().c_str());
+    return;
+  }
+
+  nav_msgs::SetMap::Request set_req;
+  set_req.map = get_resp.map;
+  set_req.initial_pose = _pimpl->_location_to_pose_with_cov(location);
+  nav_msgs::SetMap::Response set_resp;
+  
+  auto set_map_client = _pimpl->_connections->set_map_service_client();
+  if (!set_map_client->call(set_req, set_resp) || !set_resp.success)
+  {
+    ROS_WARN(
+      "Unable to set map and location to service: [%s]",
+      set_map_client->getService().c_str());
+    return;
+  }
+
+  _pimpl->_connections->map_name(location.level_name);
+  ROS_INFO("Relocalized to: %.3f, %.3f, Yaw: %.3f, Level/Map: %s",
+    location.x, location.y, location.yaw, location.level_name.c_str());
+}
+
+//==============================================================================
 void NavStackCommandHandle::follow_new_path(
-    const std::vector<free_fleet::messages::Location>& waypoints,
+    const std::vector<free_fleet::messages::Waypoint>& waypoints,
     RequestCompleted path_finished_callback)
 {
   ROS_INFO("Got a new path goal of length: %lu", waypoints.size());
+
+  auto current_map_name = _pimpl->_connections->map_name();
+  for (const auto& wp : waypoints)
+  {
+    if (wp.location.level_name != current_map_name)
+    {
+      ROS_WARN(
+        "Received a waypoint in path for map [%s] while current map is [%s], "
+        "ignoring.",
+        wp.location.level_name.c_str(),
+        current_map_name.c_str());
+      return;
+    }
+  }
   
   std::lock_guard<std::mutex> lock(_pimpl->_mutex);
   _pimpl->_goal_path.clear();
@@ -223,7 +313,7 @@ void NavStackCommandHandle::follow_new_path(
     _pimpl->_goal_path.push_back(
       Implementation::Goal {
         waypoints[i],
-        _pimpl->_location_to_move_base_goal(waypoints[i]),
+        _pimpl->_location_to_move_base_goal(waypoints[i].location),
         false});
   }
   _pimpl->_path_finished_callback = std::move(path_finished_callback);
@@ -257,7 +347,7 @@ void NavStackCommandHandle::resume()
     const Implementation::Goal& next_goal = _pimpl->_goal_path.front();
     if (!next_goal.sent)
     {
-      const auto& loc = next_goal.location;
+      const auto& loc = next_goal.waypoint.location;
       ROS_INFO("sending next goal: %.3f %.3f %.3f", loc.x, loc.y, loc.yaw);
       _pimpl->_connections->move_base_client()->sendGoal(next_goal.goal);
       _pimpl->_goal_path.front().sent = true;

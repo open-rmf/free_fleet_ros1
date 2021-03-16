@@ -125,7 +125,7 @@ public:
       _location.x = _current_transform.transform.translation.x;
       _location.y = _current_transform.transform.translation.y;
       _location.yaw = quat_to_yaw(_current_transform.transform.rotation);
-      _location.level_name = _connections->level_name();
+      _location.level_name = _connections->map_name();
 
       _mode.mode = robot_mode.mode;
 
@@ -205,9 +205,10 @@ double StatusHandle::battery_percent() const
 }
 
 //==============================================================================
-std::vector<free_fleet::messages::Location> StatusHandle::path() const
+std::size_t StatusHandle::target_path_waypoint_index() const
 {
-  return _pimpl->_connections->path();
+  std::lock_guard<std::mutex> lock(_pimpl->_mutex);
+  return _pimpl->_connections->next_path_index();
 }
 
 //==============================================================================

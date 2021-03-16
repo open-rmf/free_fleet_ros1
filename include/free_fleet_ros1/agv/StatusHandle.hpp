@@ -43,7 +43,7 @@ public:
 
   double battery_percent() const final;
 
-  std::vector<free_fleet::messages::Location> path() const final;
+  std::size_t target_path_waypoint_index() const final;
 
   class Implementation;
 private:
