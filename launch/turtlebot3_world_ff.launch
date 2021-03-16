@@ -43,12 +43,18 @@
     </group>
   </group>
 
-  <!-- launch the free fleet client first -->
-  <include file="$(find free_fleet_ros1)/launch/client.launch">
-    <arg name="fleet_name" value="turtlebot3"/>
-    <arg name="robot_name" value="tb3_0"/>
-    <arg name="robot_model" value="turtlebot3"/>
-    <arg name="level_name" value="L1"/>
-  </include>
+  <!-- launch the free fleet client -->
+  <node name="client_node" pkg="free_fleet_ros1" type="client" output="screen">
+    <param name="fleet_name" type="string" value="turtlebot3"/>
+    <param name="robot_name" type="string" value="tb3_0"/>
+    <param name="robot_model" type="string" value="turtlebot3"/>
+    <param name="initial_map_name" type="string" value="map"/>
+
+    <param name="move_base_server" type="string" value="move_base"/>
+    <param name="set_map_server" type="string" value="/set_map"/>
+    <rosparam param="get_map_servers">
+      map: /static_map
+    </rosparam>
+  </node>
 
 </launch>
