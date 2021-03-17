@@ -95,7 +95,7 @@ install(
 
 #===============================================================================
 add_library(rviz_control_panel
-  src/RvizControlPanel.cpp
+  src/plugin/RvizControlPanel.cpp
 )
 target_link_libraries(rviz_control_panel
   free_fleet_cyclonedds::free_fleet_cyclonedds

@@ -1,5 +1,5 @@
 <library path="/librviz_control_panel">
-  <class name="free_flee_ros1/RvizControlPanel"
+  <class name="free_fleet_ros1/RvizControlPanel"
       type="RvizControlPanel"
       base_class_type="rviz::Panel">
     <description>

@@ -30,10 +30,6 @@
 #include <QPushButton>
 
 #include <rviz/panel.h>
-#include <rviz/load_resource.h>
-#include <rviz/render_panel.h>
-#include <rviz/visualization_manager.h>
-
 
 #include <ros/ros.h>
 #include <geometry_msgs/Quaternion.h>
@@ -67,7 +63,6 @@ private:
   QGroupBox* nav_group_box;
   QGroupBox* debug_group_box;
 
-  QLineEdit* fleet_name_edit;
   QLineEdit* robot_name_edit;
   QTextEdit* nav_goal_edit;
   QLabel* debug_label;
@@ -81,6 +76,10 @@ private:
 
   std::mutex nav_goal_mutex;
   geometry_msgs::PoseStamped nav_goal;
+
+  const std::string fleet_name = "turtlebot3";
+  const std::string map_name = "map";
+  uint32_t current_task_id = 0;
 
   void update_goal(const geometry_msgs::PoseStamped::ConstPtr& msg);
 
@@ -110,6 +109,8 @@ RvizControlPanel::RvizControlPanel(QWidget* parent)
     &RvizControlPanel::send_nav_goal);
 
   /// create a middleware
+  middleware =
+    free_fleet::cyclonedds::CycloneDDSMiddleware::make_server(24, fleet_name);
   if (!middleware)
   {
     debug_label->setText("CycloneDDS middleware unable to start...");
@@ -127,37 +128,29 @@ RvizControlPanel::RvizControlPanel(QWidget* parent)
 //==============================================================================
 void RvizControlPanel::send_nav_goal()
 {
-  std::string fleet_name = fleet_name_edit->text().toStdString();
   std::string robot_name = robot_name_edit->text().toStdString();
 
   using namespace free_fleet::messages;
-  Location nav_location;
   NavigationRequest nav_request;
 
   {
     std::unique_lock<std::mutex> lock(nav_goal_mutex);
-    nav_location = {
+    Location nav_location = {
       static_cast<int32_t>(nav_goal.header.stamp.sec),
       nav_goal.header.stamp.nsec,
       static_cast<float>(nav_goal.pose.position.x),
       static_cast<float>(nav_goal.pose.position.y),
-      static_cast<float>(get_yaw_from_quat(_nav_goal.pose.orientation)),
-      ""
+      static_cast<float>(get_yaw_from_quat(nav_goal.pose.orientation)),
+      map_name
     };
-    destination_request = {
-      std::move(fleet_name),
+    std::vector<Waypoint> path = {{1, nav_location}};
+    nav_request = {
       std::move(robot_name),
-      std::move(nav_goal_location),
-      generate_random_task_id(20)
-    };
+      ++current_task_id,
+      std::move(path)};
   }
 
-  if (!_free_fleet_server->send_destination_request(destination_request))
-  {
-    std::string debug_str = "Failed to send navigation request...";
-    _debug_label->setText(QString::fromStdString(debug_str));
-    return;
-  }
+  middleware->send_navigation_request(nav_request);
 }
 
 //==============================================================================
@@ -166,16 +159,15 @@ void RvizControlPanel::create_robot_group_box()
   robot_group_box = new QGroupBox("Robot Selection");
   QGridLayout* layout = new QGridLayout;
 
-  fleet_name_edit = new QLineEdit;
-  fleet_name_edit->setPlaceholderText("enter fleet name here");
-
   robot_name_edit = new QLineEdit;
   robot_name_edit->setPlaceholderText("enter robot name here");
 
   layout->addWidget(new QLabel("Fleet:"), 0, 0, 1, 1);
-  layout->addWidget(fleet_name_edit, 0, 1, 1, 2);
+  layout->addWidget(new QLabel(fleet_name.c_str()), 0, 1, 1, 2);
   layout->addWidget(new QLabel("Robot:"), 1, 0, 1, 1);
   layout->addWidget(robot_name_edit, 1, 1, 1, 2);
+  layout->addWidget(new QLabel("Map:"), 2, 0, 1, 1);
+  layout->addWidget(new QLabel(map_name.c_str()), 2, 1, 1, 2);
   robot_group_box->setLayout(layout);
 }
 
@@ -249,7 +241,7 @@ double RvizControlPanel::get_yaw_from_quat(
   const geometry_msgs::Quaternion& quat) const
 {
   tf2::Quaternion tf2_quat;
-  tf2::fromMsg(_quat, tf2_quat);
+  tf2::fromMsg(quat, tf2_quat);
   tf2::Matrix3x3 tf2_mat(tf2_quat);
   
   // ignores pitch and roll, but the api call is so nice though
