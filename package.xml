@@ -17,6 +17,8 @@
   <depend>move_base_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
+  <depend>pluginlib</depend>
+  <depend>rviz</depend>
 
   <depend>free_fleet</depend>
   <depend>free_fleet_cyclonedds</depend>
@@ -27,4 +29,8 @@
   <exec_depend>amcl</exec_depend>
   <exec_depend>move_base</exec_depend>
   <exec_depend>map_server</exec_depend>
+
+  <export>
+    <rviz plugin="${prefix}/plugin_description.xml"/>
+  </export>
 </package>

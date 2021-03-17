@@ -1,0 +1,9 @@
+<library path="/librviz_control_panel">
+  <class name="free_flee_ros1/RvizControlPanel"
+      type="RvizControlPanel"
+      base_class_type="rviz::Panel">
+    <description>
+      A panel widget that allows sending simple navigation commands.
+    </description>
+  </class>
+</library>

@@ -27,10 +27,17 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   move_base_msgs
   tf2_geometry_msgs
+  pluginlib
+  rviz
 )
 
 find_package(free_fleet REQUIRED)
 find_package(free_fleet_cyclonedds REQUIRED)
+
+set(CMAKE_AUTOMOC ON)
+find_package(Qt5 REQUIRED COMPONENTS Core Widgets)
+set(QT_LIBRARIES Qt5::Widgets)
+set(QT_VERSION ${Qt5Widgets_VERSION})
 
 catkin_package()
 
@@ -40,6 +47,7 @@ file(GLOB lib_srcs
   "src/ros1/*.cpp"
 )
 
+#===============================================================================
 add_library(free_fleet_ros1 SHARED
   ${lib_srcs}
 )
@@ -61,6 +69,7 @@ install(TARGETS free_fleet_ros1
   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
 )
 
+#===============================================================================
 add_executable(client
   "src/client/main.cpp"
 )
@@ -84,6 +93,32 @@ install(
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
+#===============================================================================
+add_library(rviz_control_panel
+  src/RvizControlPanel.cpp
+)
+target_link_libraries(rviz_control_panel
+  free_fleet_cyclonedds::free_fleet_cyclonedds
+  ${catkin_LIBRARIES}
+  ${QT_LIBRARIES}
+)
+target_include_directories(rviz_control_panel
+  PRIVATE
+    ${catkin_INCLUDE_DIRS}
+)
+
+install(
+  TARGETS rviz_control_panel
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+install(FILES
+  plugin_description.xml
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
+
+#===============================================================================
 set(testing_targets
   fake_move_base_server
   fake_set_map_server
@@ -112,6 +147,7 @@ install(
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
+#===============================================================================
 install(
   DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}

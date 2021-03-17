@@ -1,5 +1,5 @@
 <launch>
-  <arg name="model" default="$(env TURTLEBOT3_MODEL)" doc="model type [burger, waffle, waffle_pi]"/>
+  <arg name="model" default="burger" doc="model type [burger, waffle, waffle_pi]"/>
   <arg name="set_map_frame"  default="map"/>
 
   <!-- launches the basic multi turtlebot3 world -->
@@ -115,7 +115,11 @@
   </node>
 
   <!-- launch the overall visualization on rviz -->
-  <node pkg="rviz" type="rviz" name="rviz" required="true"
-        args="-d $(find free_fleet_ros1)/launch/include/multi_turtlebot3.rviz"/>
+  <node
+    pkg="rviz"
+    type="rviz"
+    name="rviz"
+    required="true"
+    args="-d $(find free_fleet_ros1)/launch/include/multi_turtlebot3.rviz"/>
   
 </launch>
