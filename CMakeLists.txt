@@ -29,21 +29,24 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_geometry_msgs
 )
 
+find_package(rmf_utils REQUIRED)
 find_package(free_fleet REQUIRED)
 find_package(free_fleet_cyclonedds REQUIRED)
 
 catkin_package()
 
+# ------------------------------------------------------------------------------
+
 file(GLOB lib_srcs
-  "src/*.cpp"
-  "src/agv/*.cpp"
-  "src/ros1/*.cpp"
+  "src/free_fleet_ros1/client/*.cpp"
+  # "src/free_fleet_ros1/server/*.cpp"
 )
 
 add_library(free_fleet_ros1 SHARED
   ${lib_srcs}
 )
 target_link_libraries(free_fleet_ros1
+  rmf_utils::rmf_utils
   free_fleet::free_fleet
   ${catkin_LIBRARIES}
 )
@@ -61,55 +64,65 @@ install(TARGETS free_fleet_ros1
   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
 )
 
-add_executable(client
-  "src/client/main.cpp"
-)
-target_link_libraries(client
-  free_fleet_ros1
-  free_fleet::free_fleet
-  free_fleet_cyclonedds::free_fleet_cyclonedds
-  ${catkin_LIBRARIES}
-)
-target_include_directories(client
-  PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-  PRIVATE
-    ${catkin_INCLUDE_DIRS}
-)
+# ------------------------------------------------------------------------------
+
+# add_executable(client
+#   "src/client/main.cpp"
+# )
+# target_link_libraries(client
+#   free_fleet_ros1
+#   free_fleet::free_fleet
+#   free_fleet_cyclonedds::free_fleet_cyclonedds
+#   ${catkin_LIBRARIES}
+# )
+# target_include_directories(client
+#   PUBLIC
+#     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+#     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+#   PRIVATE
+#     ${catkin_INCLUDE_DIRS}
+# )
+# 
+# install(
+#   TARGETS
+#     client
+#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
+# 
+# set(testing_targets
+#   fake_move_base_server
+#   fake_set_map_server
+#   fake_get_map_servers
+# )
+# foreach(target ${testing_targets})
+#   add_executable(${target}
+#     src/tests/${target}.cpp
+#   )
+#   target_link_libraries(${target}
+#     free_fleet::free_fleet  
+#     ${catkin_LIBRARIES}
+#   )
+#   target_include_directories(${target}
+#     PUBLIC
+#       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+#       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+#     PRIVATE
+#       ${catkin_INCLUDE_DIRS}
+#   )
+# endforeach()
+# 
+# install(
+#   TARGETS
+#     ${testing_targets}
+#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
+# 
+
+# ------------------------------------------------------------------------------
 
 install(
-  TARGETS
-    client
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-set(testing_targets
-  fake_move_base_server
-  fake_set_map_server
-  fake_get_map_servers
-)
-foreach(target ${testing_targets})
-  add_executable(${target}
-    src/tests/${target}.cpp
-  )
-  target_link_libraries(${target}
-    free_fleet::free_fleet  
-    ${catkin_LIBRARIES}
-  )
-  target_include_directories(${target}
-    PUBLIC
-      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-      $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    PRIVATE
-      ${catkin_INCLUDE_DIRS}
-  )
-endforeach()
-
-install(
-  TARGETS
-    ${testing_targets}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  DIRECTORY include/
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 install(

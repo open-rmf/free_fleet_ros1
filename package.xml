@@ -18,6 +18,7 @@
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
 
+  <depend>rmf_utils</depend>
   <depend>free_fleet</depend>
   <depend>free_fleet_cyclonedds</depend>
 </package>

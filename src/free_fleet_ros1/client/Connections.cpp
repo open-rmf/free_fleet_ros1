@@ -21,23 +21,23 @@
 #include <nav_msgs/GetMap.h>
 #include <nav_msgs/SetMap.h>
 
-#include <free_fleet_ros1/ros1/Connections.hpp>
+#include <free_fleet_ros1/client/Connections.hpp>
 
 namespace free_fleet_ros1 {
-namespace ros1 {
+namespace client {
 
 //==============================================================================
-
 class Connections::Implementation
 {
 public:
 
   Implementation()
-  : _stopped(false)
-  {}
+  : robot_stopped(false)
+  {
+  }
 
   Implementation(const Implementation&)
-  : _stopped(false)
+  : robot_stopped(false)
   {
     // Empty copy constructor, only needed during construction of impl_ptr
     // All members will be initialized or assigned during runtime.
@@ -45,8 +45,8 @@ public:
 
   ~Implementation()
   {
-    if (_spin_thread.joinable())
-      _spin_thread.join();
+    if (spin_thread.joinable())
+      spin_thread.join();
   }
 
   void thread_fn()
@@ -56,46 +56,51 @@ public:
 
   void battery_state_callback_fn(const sensor_msgs::BatteryState& msg)
   {
-    std::lock_guard<std::mutex> lock(_mutex);
-    _battery_state = msg;
+    std::lock_guard<std::mutex> lock(mutex);
+    battery_state = msg;
   }
 
   void start(const std::string& battery_state_topic)
   {
-    _battery_state_sub =
-      _node->subscribe(
-        battery_state_topic, 1, &Implementation::battery_state_callback_fn, 
-        this);
-    _spin_thread = std::thread(std::bind(&Implementation::thread_fn, this));
+    battery_state_sub = node->subscribe(
+      battery_state_topic, 1,
+      &Implementation::battery_state_callback_fn, 
+      this);
+    spin_thread = std::thread(std::bind(&Implementation::thread_fn, this));
   }
 
-  std::shared_ptr<ros::NodeHandle> _node;
-  std::shared_ptr<MoveBaseClient> _move_base_client;
+  std::shared_ptr<ros::NodeHandle> node;
 
-  std::shared_ptr<tf2_ros::Buffer> _tf2_buffer;
-  std::shared_ptr<tf2_ros::TransformListener> _tf2_listener;
+  std::shared_ptr<MoveBaseClient> move_base_client;
 
-  std::shared_ptr<ros::ServiceClient> _set_map_service_client;
+  std::shared_ptr<tf2_ros::Buffer> tf2_buffer;
+
+  std::shared_ptr<tf2_ros::TransformListener> tf2_listener;
+
+  std::shared_ptr<ros::ServiceClient> set_map_service_client;
 
   std::unordered_map<std::string, std::shared_ptr<ros::ServiceClient>>
-    _get_map_service_client_map;
+    get_map_service_client_map;
 
-  ros::Subscriber _battery_state_sub;
-  sensor_msgs::BatteryState _battery_state;
+  ros::Subscriber battery_state_sub;
 
-  std::atomic<bool> _stopped;
+  sensor_msgs::BatteryState battery_state;
 
-  std::string _map_name;
+  std::atomic<bool> robot_stopped;
 
-  std::vector<free_fleet::messages::Waypoint> _path;
-  std::size_t _next_path_index;
+  std::string map_name;
 
-  mutable std::mutex _mutex;
-  std::thread _spin_thread;
+  std::vector<free_fleet::messages::Waypoint> path;
+
+  std::size_t next_path_index;
+
+  mutable std::mutex mutex;
+
+  std::thread spin_thread;
 };
 
 //==============================================================================
-Connections::SharedPtr Connections::make(
+std::shared_ptr<Connections> Connections::make(
   const std::string& node_name,
   const std::string& move_base_server_name,
   const std::string& set_map_server_name,
@@ -104,7 +109,7 @@ Connections::SharedPtr Connections::make(
   const std::string& initial_map_name,
   int timeout)
 {
-  Connections::SharedPtr connections(new Connections());
+  std::shared_ptr<Connections> connections(new Connections());
 
   std::shared_ptr<ros::NodeHandle> node(new ros::NodeHandle(node_name));
   std::shared_ptr<MoveBaseClient> move_base_client(
@@ -164,15 +169,15 @@ Connections::SharedPtr Connections::make(
     return nullptr;
   }
 
-  connections->_pimpl->_node = std::move(node);
-  connections->_pimpl->_move_base_client = std::move(move_base_client);
-  connections->_pimpl->_tf2_buffer = std::move(buffer);
-  connections->_pimpl->_tf2_listener = std::move(listener);
-  connections->_pimpl->_set_map_service_client =
+  connections->_pimpl->node = std::move(node);
+  connections->_pimpl->move_base_client = std::move(move_base_client);
+  connections->_pimpl->tf2_buffer = std::move(buffer);
+  connections->_pimpl->tf2_listener = std::move(listener);
+  connections->_pimpl->set_map_service_client =
     std::move(set_map_service_client);
-  connections->_pimpl->_get_map_service_client_map =
+  connections->_pimpl->get_map_service_client_map =
     std::move(get_map_service_client_map);
-  connections->_pimpl->_map_name = std::move(initial_map_name);
+  connections->_pimpl->map_name = std::move(initial_map_name);
   connections->_pimpl->start(battery_state_topic);
   return connections;
 }
@@ -180,45 +185,46 @@ Connections::SharedPtr Connections::make(
 //==============================================================================
 Connections::Connections()
 : _pimpl(rmf_utils::make_impl<Implementation>())
-{}
+{
+}
 
 //==============================================================================
 auto Connections::node() const -> std::shared_ptr<ros::NodeHandle>
 {
-  return _pimpl->_node;
+  return _pimpl->node;
 }
 
 //==============================================================================
 auto Connections::move_base_client() const -> std::shared_ptr<MoveBaseClient>
 {
-  return _pimpl->_move_base_client;
+  return _pimpl->move_base_client;
 }
 
 //==============================================================================
 auto Connections::tf2_buffer() const -> std::shared_ptr<tf2_ros::Buffer>
 {
-  return _pimpl->_tf2_buffer;
+  return _pimpl->tf2_buffer;
 }
 
 //==============================================================================
 auto Connections::set_map_service_client() const
   -> std::shared_ptr<ros::ServiceClient>
 {
-  return _pimpl->_set_map_service_client;
+  return _pimpl->set_map_service_client;
 }
 
 //==============================================================================
 auto Connections::battery_state() const -> sensor_msgs::BatteryState
 {
-  std::lock_guard<std::mutex> lock(_pimpl->_mutex);
-  return _pimpl->_battery_state;
+  std::lock_guard<std::mutex> lock(_pimpl->mutex);
+  return _pimpl->battery_state;
 }
 
 //==============================================================================
 auto Connections::maps() const -> std::vector<std::string>
 {
   std::vector<std::string> maps;
-  for (const auto it : _pimpl->_get_map_service_client_map)
+  for (const auto it : _pimpl->get_map_service_client_map)
   {
     maps.push_back(it.first);
   }
@@ -227,74 +233,74 @@ auto Connections::maps() const -> std::vector<std::string>
 
 //==============================================================================
 auto Connections::get_map_client(const std::string& map_name) const
-  -> std::shared_ptr<ros::ServiceClient>
+-> std::shared_ptr<ros::ServiceClient>
 {
-  auto it = _pimpl->_get_map_service_client_map.find(map_name);
-  if (it == _pimpl->_get_map_service_client_map.end())
+  auto it = _pimpl->get_map_service_client_map.find(map_name);
+  if (it == _pimpl->get_map_service_client_map.end())
     return nullptr;
 
   return it->second;
 }
 
 //==============================================================================
-bool Connections::stopped() const
+bool Connections::robot_stopped() const
 {
-  return _pimpl->_stopped;
+  return _pimpl->robot_stopped;
 }
 
 //==============================================================================
-void Connections::stopped(bool new_stopped_state)
+void Connections::robot_stopped(bool new_robot_stopped_state)
 {
-  _pimpl->_stopped = new_stopped_state;
+  _pimpl->robot_stopped = new_robot_stopped_state;
 }
 
 //==============================================================================
 std::string Connections::map_name() const
 {
-  std::lock_guard<std::mutex> lock(_pimpl->_mutex);
-  return _pimpl->_map_name;
+  std::lock_guard<std::mutex> lock(_pimpl->mutex);
+  return _pimpl->map_name;
 }
 
 //==============================================================================
 void Connections::map_name(const std::string& new_map_name)
 {
-  std::lock_guard<std::mutex> lock(_pimpl->_mutex);
-  _pimpl->_map_name = new_map_name;
+  std::lock_guard<std::mutex> lock(_pimpl->mutex);
+  _pimpl->map_name = new_map_name;
 }
 
 //==============================================================================
 std::vector<free_fleet::messages::Waypoint> Connections::path() const
 {
-  std::lock_guard<std::mutex> lock(_pimpl->_mutex);
-  return _pimpl->_path;  
+  std::lock_guard<std::mutex> lock(_pimpl->mutex);
+  return _pimpl->path;
 }
 
 //==============================================================================
 void Connections::path(
   const std::vector<free_fleet::messages::Waypoint>& new_path)
 {
-  std::lock_guard<std::mutex> lock(_pimpl->_mutex);
-  _pimpl->_path = new_path;
-  _pimpl->_next_path_index = 0;
+  std::lock_guard<std::mutex> lock(_pimpl->mutex);
+  _pimpl->path = new_path;
+  _pimpl->next_path_index = 0;
 }
 
 //==============================================================================
 std::size_t Connections::next_path_index() const
 {
-  std::lock_guard<std::mutex> lock(_pimpl->_mutex);
-  return _pimpl->_next_path_index;
+  std::lock_guard<std::mutex> lock(_pimpl->mutex);
+  return _pimpl->next_path_index;
 }
 
 //==============================================================================
 void Connections::next_path_index(std::size_t index)
 {
-  std::lock_guard<std::mutex> lock(_pimpl->_mutex);
-  if (index >= _pimpl->_path.size())
+  std::lock_guard<std::mutex> lock(_pimpl->mutex);
+  if (index >= _pimpl->path.size())
   {
     ROS_ERROR("Next path index is out of range of the path.");
     return;
   }
-  _pimpl->_next_path_index = index;
+  _pimpl->next_path_index = index;
 }
 
 //==============================================================================

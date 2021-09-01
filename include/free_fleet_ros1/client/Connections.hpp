@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef INCLUDE__FREE_FLEET_ROS1__ROS1__CONNECTIONS_HPP
-#define INCLUDE__FREE_FLEET_ROS1__ROS1__CONNECTIONS_HPP
+#ifndef INCLUDE__FREE_FLEET_ROS1__CLIENT__CONNECTIONS_HPP
+#define INCLUDE__FREE_FLEET_ROS1__CLIENT__CONNECTIONS_HPP
 
 #include <memory>
 #include <unordered_map>
@@ -36,13 +36,11 @@
 #include <free_fleet/messages/Waypoint.hpp>
 
 namespace free_fleet_ros1 {
-namespace ros1 {
+namespace client {
 
 class Connections
 {
 public:
-
-  using SharedPtr = std::shared_ptr<Connections>;
 
   using MoveBaseClient =
     actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction>;
@@ -61,7 +59,7 @@ public:
   /// \param[in] initial_map_name
   /// \param[in] timeout
   /// \return
-  static SharedPtr make(
+  static std::shared_ptr<Connections> make(
     const std::string& node_name,
     const std::string& move_base_server_name,
     const std::string& set_map_server_name,
@@ -94,10 +92,10 @@ public:
     const std::string& map_name) const;
 
   /// Checks if the robot has stopped.
-  bool stopped() const;
+  bool robot_stopped() const;
 
   /// Modify the robots stopped state.
-  void stopped(bool new_stopped_state);
+  void robot_stopped(bool new_robot_stopped_state);
 
   /// Current map name.
   std::string map_name() const;
@@ -123,7 +121,7 @@ private:
   rmf_utils::impl_ptr<Implementation> _pimpl;
 };
 
-} // namespace ros1
+} // namespace client
 } // namespace free_fleet_ros1
 
-#endif // INCLUDE__FREE_FLEET_ROS1__ROS1__CONNECTIONS_HPP
+#endif // INCLUDE__FREE_FLEET_ROS1__CLIENT__CONNECTIONS_HPP
