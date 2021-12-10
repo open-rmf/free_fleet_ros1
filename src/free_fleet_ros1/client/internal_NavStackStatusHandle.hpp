@@ -42,13 +42,12 @@ class NavStackStatusHandle::Implementation
 public:
 
   static std::shared_ptr<NavStackStatusHandle> make(
-    const std::string& map_frame,
-    const std::string& robot_frame,
-    int update_frequency,
     std::shared_ptr<NavStackData> nav_stack_data);
   
   Implementation()
   {
+    if (thread.joinable())
+      thread.join();
   }
 
   Implementation(const Implementation&)
@@ -57,11 +56,19 @@ public:
     // All members will be initialized or assigned during runtime.
   }
 
+  void update_transforms();
+
+  void update_mode();
+
   void update_thread_fn();
+
+  bool initialized() const;
 
   void start();
 
   std::thread thread;
+
+  std::shared_ptr<NavStackData> nav_stack_data;
 
   std::optional<geometry_msgs::TransformStamped> previous_transform =
     std::nullopt;
@@ -69,7 +76,7 @@ public:
   std::optional<geometry_msgs::TransformStamped> current_transform =
     std::nullopt;
 
-  std::shared_ptr<NavStackData> nav_stack_data;
+  std::unique_ptr<ros::Rate> update_rate;
 };
 
 

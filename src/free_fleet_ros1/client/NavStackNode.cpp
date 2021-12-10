@@ -85,8 +85,8 @@ std::shared_ptr<NavStackNode> NavStackNode::make(
   const std::string& initial_map_name,
   const std::string& map_frame,
   const std::string& robot_frame,
-  int update_frequency,
-  int timeout_sec)
+  uint32_t update_frequency,
+  uint32_t timeout_sec)
 {
   std::shared_ptr<NavStackData> data(new NavStackData());
   data->ros_node =
@@ -155,16 +155,30 @@ std::shared_ptr<NavStackNode> NavStackNode::make(
         if (!data)
           return;
         
-        std::lock_guard<std::mutex> lock(data->mutex);
-        data->battery_state = *msg;    
+        data->battery_state(*msg);
       });  
 
+  auto make_error = [](const std::string& error_message)
+  {
+    fferr << error_message << "\n";
+    return nullptr;
+  };
+
+  if (initial_map_name.empty())
+    return make_error("initial_map_name cannot be empty.");
+  if (map_frame.empty())
+    return make_error("map_frame cannot be empty.");
+  if (robot_frame.empty())
+    return make_error("robot_frame cannot be empty.");
+  if (update_frequency == 0)
+    return make_error("update_frequency must be larger than 0.");
+  
   data->robot_stopped = false;
   data->map_name = initial_map_name;
   data->map_frame = map_frame;
   data->robot_frame = robot_frame;
   data->update_frequency = update_frequency;
-  data->timeout_sec;
+  data->timeout_sec = timeout_sec;
 
   std::shared_ptr<NavStackNode> node(new NavStackNode());
   node->_pimpl->data = std::move(data);
@@ -202,11 +216,7 @@ std::shared_ptr<NavStackStatusHandle> NavStackNode::status_handle()
     return _pimpl->nav_stack_status_handle;
 
   std::shared_ptr<NavStackStatusHandle> status_handle =
-    NavStackStatusHandle::Implementation::make(
-      _pimpl->data->map_frame,
-      _pimpl->data->robot_frame,
-      _pimpl->data->update_frequency,
-      _pimpl->data);
+    NavStackStatusHandle::Implementation::make(_pimpl->data);
   if (!status_handle)
   {
     fferr << "Failed to create a NavStackStatusHandle.\n";

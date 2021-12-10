@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.5.0)
 project(free_fleet_ros1 VERSION 1.0.0 LANGUAGES C CXX)
 
-# Default to C++14
+# Default to C++17
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
+  set(CMAKE_CXX_STANDARD 17)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -27,6 +27,7 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   move_base_msgs
   tf2_geometry_msgs
+  catch_ros
 )
 
 find_package(rmf_utils REQUIRED)
@@ -88,44 +89,36 @@ install(TARGETS free_fleet_ros1
 #     client
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
-# 
-# set(testing_targets
-#   fake_move_base_server
-#   fake_set_map_server
-#   fake_get_map_servers
-# )
-# foreach(target ${testing_targets})
-#   add_executable(${target}
-#     src/tests/${target}.cpp
-#   )
-#   target_link_libraries(${target}
-#     free_fleet::free_fleet  
-#     ${catkin_LIBRARIES}
-#   )
-#   target_include_directories(${target}
-#     PUBLIC
-#       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-#       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-#     PRIVATE
-#       ${catkin_INCLUDE_DIRS}
-#   )
-# endforeach()
-# 
-# install(
-#   TARGETS
-#     ${testing_targets}
-#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
-# 
 
 # ------------------------------------------------------------------------------
+if (BUILD_TESTING)
+  file(GLOB_RECURSE test_srcs "test/*.cpp")
+  catch_add_test(test_free_fleet_ros1
+    ${test_srcs}
+  )
+  target_link_libraries(test_free_fleet_ros1
+    free_fleet_ros1
+    ${catkin_LIBRARIES}
+  )
+  target_include_directories(test_free_fleet_ros1
+    PRIVATE
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+      ${catkin_INCLUDE_DIRS}
+  )
+  install(TARGETS test_free_fleet_ros1
+		ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+		LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+		RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+	)
+endif()
 
+# ------------------------------------------------------------------------------
 install(
   DIRECTORY include/
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
-install(
-  DIRECTORY launch
-  DESTINATION share/${PROJECT_NAME}
-)
+# install(
+#   DIRECTORY launch
+#   DESTINATION share/${PROJECT_NAME}
+# )

@@ -18,11 +18,11 @@
 #ifndef SRC__FREE_FLEET_ROS1__CLIENT__NAVSTACKDATA_HPP
 #define SRC__FREE_FLEET_ROS1__CLIENT__NAVSTACKDATA_HPP
 
-#include <mutex>
 #include <atomic>
 #include <string>
 #include <vector>
 #include <optional>
+#include <shared_mutex>
 #include <unordered_map>
 
 #include <sensor_msgs/BatteryState.h>
@@ -32,7 +32,9 @@
 #include <tf2_ros/transform_listener.h>
 #include <actionlib/client/simple_action_client.h>
 
+#include <free_fleet/messages/Location.hpp>
 #include <free_fleet/messages/Waypoint.hpp>
+#include <free_fleet/messages/RobotMode.hpp>
 
 namespace free_fleet_ros1 {
 namespace client {
@@ -43,7 +45,11 @@ public:
 
   using MoveBaseClient =
     actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction>;
+  using ReadLock = std::shared_lock<std::shared_mutex>;
+  using WriteLock = std::unique_lock<std::shared_mutex>;
 
+  //============================================================================
+  // ROS related items
   std::shared_ptr<ros::NodeHandle> ros_node;
 
   std::shared_ptr<MoveBaseClient> move_base_client;
@@ -57,10 +63,11 @@ public:
   std::unordered_map<std::string, std::shared_ptr<ros::ServiceClient>>
     get_map_service_client_map;
 
+  // TODO(AA): Abstract away the method of obtaining the battery state. This
+  // should be done when we migrate to a feature based system.
   ros::Subscriber battery_state_sub;
 
-  std::optional<sensor_msgs::BatteryState> battery_state = std::nullopt;
-
+  //============================================================================
   std::atomic<bool> robot_stopped;
 
   std::string map_name;
@@ -69,19 +76,49 @@ public:
 
   std::string robot_frame;
 
-  int update_frequency;
+  uint32_t update_frequency;
 
-  int timeout_sec;
-  
-  std::optional<free_fleet::messages::Location> location = std::nullopt;
- 
-  std::optional<free_fleet::messages::RobotMode> mode = std::nullopt;
+  uint32_t timeout_sec;
 
   std::vector<free_fleet::messages::Waypoint> path;
 
-  std::optional<std::size_t> next_path_index;
+  //============================================================================
+  std::optional<std::size_t> next_path_index() const;
 
-  mutable std::mutex mutex;
+  void next_path_index(std::optional<std::size_t> index);
+
+  //============================================================================
+  std::optional<sensor_msgs::BatteryState> battery_state() const;
+
+  void battery_state(const sensor_msgs::BatteryState& battery_state);
+
+  //============================================================================
+  std::optional<free_fleet::messages::RobotMode> mode() const;
+
+  void mode(const free_fleet::messages::RobotMode& mode);
+
+  //============================================================================
+  std::optional<free_fleet::messages::Location> location() const;
+
+  void location(const free_fleet::messages::Location& location);
+
+private:
+  
+  std::optional<std::size_t> _next_path_index = std::nullopt;
+
+  mutable std::shared_mutex _next_path_index_mutex;
+
+  std::optional<sensor_msgs::BatteryState> _battery_state = std::nullopt;
+
+  mutable std::shared_mutex _battery_state_mutex;
+ 
+  std::optional<free_fleet::messages::RobotMode> _mode = std::nullopt;
+
+  mutable std::shared_mutex _mode_mutex;
+
+  std::optional<free_fleet::messages::Location> _location = std::nullopt;
+
+  mutable std::shared_mutex _loc_mutex;
 };
 
 } // client

@@ -48,10 +48,14 @@ public:
     const std::string& initial_map_name,
     const std::string& map_frame,
     const std::string& robot_frame,
-    int update_frequency = 10,
-    int timeout_sec = 10);
+    uint32_t update_frequency = 10,
+    uint32_t timeout_sec = 10);
 
-  /// Returns a shared CommandHandle used by the free fleet Client.
+  // /// Returns a shared CommandHandle used by the free fleet Client. If a
+  // /// CommandHandle has not been requested before, this will create a new one,
+  // /// otherwise it will return a shared pointer to the previously created
+  // /// CommandHandle. If the initialization of a new CommandHandle fails, this 
+  // /// returns a nullptr.
   // std::shared_ptr<NavStackCommandHandle> command_handle() const;
 
   /// Returns a shared StatusHandle used by the free fleet Client. If a

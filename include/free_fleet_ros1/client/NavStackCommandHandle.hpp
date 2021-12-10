@@ -39,9 +39,9 @@ public:
       const std::vector<free_fleet::messages::Waypoint>& waypoints,
       RequestCompleted path_finished_callback) final;
 
-  void stop() final;
+  void stop(RequestCompleted stopped_callback) final;
 
-  void resume() final;
+  void resume(RequestCompleted resumed_callback) final;
 
   void dock(
     const std::string& dock_name,
